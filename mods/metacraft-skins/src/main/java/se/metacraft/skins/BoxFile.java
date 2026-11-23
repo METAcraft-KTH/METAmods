@@ -15,8 +15,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import static se.metacraft.skins.DefinitionCodecs.GRADIENT;
@@ -33,9 +35,11 @@ import static se.metacraft.skins.DefinitionCodecs.withError;
 
 /**
  * Reads one Skin Box file, {@code boxes/<id>.json5}: its name (with formatting codes, and the
- * gradient that may colour it, as a skin's), description, and its skins with their weights, in
- * file order. {@code ominous} is still read (true or false), so files from when it drew a box as the
- * ominous vault still load, and ignored: every box looks the same. Read as strictly as {@code skin.json5}: anything
+ * gradient that may colour it, as a skin's), description, its skins with their weights, in
+ * file order, and its own look, if it has one: {@code look: { model: "<file>.json" }}, a Blockbench
+ * export in the box's folder, {@code boxes/<id>/}, put in the pack as a skin's model is (a box with
+ * none is drawn with the shared Skin Box model). {@code ominous} is still read (true or false), so files from when it drew a box as the
+ * ominous vault still load, and ignored. Read as strictly as {@code skin.json5}: anything
  * wrong rejects the box with the reason, in the same words. Whether each skin is on the server is
  * the reload's to say ({@link Skins#reload}).
  */
@@ -52,10 +56,17 @@ final class BoxFile {
 	/** One skin a box holds, and its weight. */
 	record Entry(String skin, int weight) {}
 
-	/** A box file that loaded. {@code name} is the name without its formatting codes, {@code title} the name with them. */
-	record Loaded(String id, String name, Component title, Optional<String> description, List<Entry> skins) {}
+	/**
+	 * A box file that loaded. {@code name} is the name without its formatting codes, {@code title} the name with them.
+	 * {@code look} is its own model's id in the pack, and {@code files} that model's files there; none without a look.
+	 */
+	record Loaded(String id, String name, Component title, Optional<String> description, List<Entry> skins, Optional<String> look,
+			Map<String, byte[]> files) {}
 
-	private record Definition(String name, Optional<SkinName.Gradient> gradient, Optional<String> description, Optional<Boolean> ominous, List<Entry> skins) {}
+	private record Look(String model) {}
+
+	private record Definition(String name, Optional<SkinName.Gradient> gradient, Optional<String> description, Optional<Boolean> ominous, List<Entry> skins,
+			Optional<Look> look) {}
 
 	private static final String WEIGHTS = "must be a whole number from 1 to 1,000,000";
 	private static final Codec<Integer> WEIGHT = withError(WHOLE, WEIGHTS).comapFlatMap(
@@ -72,12 +83,16 @@ final class BoxFile {
 		}
 		return DataResult.success(skins);
 	});
+	private static final Codec<Look> LOOK = object(StrictCodec.of(RecordCodecBuilder.<Look>mapCodec(i -> i.group(
+			rawField("model", topText("look.model"), "missing field \"look.model\"").forGetter(Look::model)
+	).apply(i, Look::new))), "field \"look\" must be an object: { model: \"<file>.json\" }");
 	private static final Codec<Definition> CODEC = StrictCodec.of(RecordCodecBuilder.<Definition>mapCodec(i -> i.group(
 			rawField("name", NAME, "missing field \"name\"").forGetter(Definition::name),
 			optionalField("gradient", GRADIENT).forGetter(Definition::gradient),
 			optionalRawField("description", topText("description")).forGetter(Definition::description),
 			optionalRawField("ominous", withError(Codec.BOOL, "field \"ominous\" must be true or false")).forGetter(Definition::ominous),
-			rawField("skins", SKINS, "missing field \"skins\"").forGetter(Definition::skins)
+			rawField("skins", SKINS, "missing field \"skins\"").forGetter(Definition::skins),
+			optionalRawField("look", LOOK).forGetter(Definition::look)
 	).apply(i, Definition::new))
 			.validate(d -> nameFitsGradient(d, d.name(), d.gradient())));
 
@@ -100,6 +115,9 @@ final class BoxFile {
 		}
 		if (json == null) throw new SkinFolder.Rejected(file, "broken json5: not an object");
 		Definition box = CODEC.parse(JanksonOps.INSTANCE, json).getOrThrow(reason -> new SkinFolder.Rejected(file, reason));
-		return new Loaded(id, SkinName.plain(box.name()), SkinName.styled(box.name(), box.gradient()), box.description(), box.skins());
+		Map<String, byte[]> files = new TreeMap<>();
+		Optional<String> look = Optional.empty();
+		if (box.look().isPresent()) look = Optional.of(SkinFolder.boxLook(file.resolveSibling(id), id, box.look().get().model(), file, files));
+		return new Loaded(id, SkinName.plain(box.name()), SkinName.styled(box.name(), box.gradient()), box.description(), box.skins(), look, Map.copyOf(files));
 	}
 }

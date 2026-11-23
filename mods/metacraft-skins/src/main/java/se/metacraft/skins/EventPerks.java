@@ -84,7 +84,7 @@ final class EventPerks {
 			}
 			case Perk.Particle p -> {
 				double width = entity == null ? 0.5 : entity.getBbWidth() * 0.5, height = entity == null ? 0.5 : entity.getBbHeight() * 0.3;
-				level.sendParticles(p.particle(), at.x, at.y, at.z, p.count(), width, height, width, 0);
+				level.sendParticles(p.particle(), at.x, at.y, at.z, p.count(), width, height, width, p.speed());
 			}
 			case Perk.Sound s -> level.playSeededSound(null, at.x, at.y, at.z, s.sound(), SoundSource.PLAYERS, s.volume(), s.pitch(), holder.getRandom().nextLong());
 			case Perk.AttributeChange a -> {}   // lasting only: never in an event Perk (the definition is rejected)

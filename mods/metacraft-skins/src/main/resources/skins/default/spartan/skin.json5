@@ -1,5 +1,6 @@
 {
-	name: "&9&lSpartan Helmet",
+	name: "Spartan Helmet",
+	rarity: "rare",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "spartan.json", dyeable: true, color: "#B22222" },

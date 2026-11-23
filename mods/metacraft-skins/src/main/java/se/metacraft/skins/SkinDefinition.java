@@ -34,18 +34,23 @@ import static se.metacraft.skins.DefinitionCodecs.withError;
 
 /**
  * A skin's {@code skin.json5}: its name (as written, formatting codes and all: {@link SkinName}) and
- * the {@link SkinName.Gradient} that may colour it, Kind, the Materials it's limited to (in vanilla order; empty if it fits every one), description,
+ * the {@link SkinName.Gradient} or {@link Rarity} that may colour it, Kind, the Materials it's limited to (in vanilla order; empty if it fits every one), description,
  * {@link Release}, whether it can be Extracted, Perks and Look. {@link #CODEC} reads the Kind first
  * and lets it pick the codec for the rest, which checks everything that depends on the Kind as it
  * reads. Its errors are the reasons a skin is rejected, in words for an admin.
  */
-record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind kind, Optional<List<Material>> materials, Optional<String> description, Release release, boolean extractable,
+record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Optional<Rarity> rarity, Kind kind, Optional<List<Material>> materials, Optional<String> description, Release release, boolean extractable,
 						List<Perk> perks, Look look) {
 	/**
 	 * The Look: the model file of each slot ({@code model}, or a spear's {@code icon} and
 	 * {@code in_hand}, in that order), and whether it's a Dyeable Hat.
 	 */
 	record Look(Map<String, String> models, boolean dyeable, Optional<Integer> color) {}
+
+	/** The name as {@link SkinName} reads it: as written, after its rarity's codes if it has one. */
+	String writtenName() {
+		return rarity.map(r -> r.colour(name)).orElse(name);
+	}
 
 	/** Unknown Material names that are vanilla's item-name adjectives for a known one. */
 	private static final Map<String, String> MATERIAL_HINTS = Map.of("wooden", "wood", "golden", "gold");
@@ -59,6 +64,7 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 		return StrictCodec.map(RecordCodecBuilder.<SkinDefinition>mapCodec(i -> i.group(
 				rawField("name", NAME, "missing field \"name\"").forGetter(SkinDefinition::name),
 				optionalField("gradient", GRADIENT).forGetter(SkinDefinition::gradient),
+				optionalRawField("rarity", Rarity.CODEC).forGetter(SkinDefinition::rarity),
 				optionalRawField("materials", materials(kind)).forGetter(SkinDefinition::materials),
 				optionalRawField("description", topText("description")).forGetter(SkinDefinition::description),
 				optionalRawField("released", RELEASED).forGetter(d -> d.release().released()),
@@ -69,9 +75,19 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 				optionalRawField("perks", PerkCodecs.perks(kind)).xmap(p -> p.orElse(List.of()), p -> p.isEmpty() ? Optional.<List<Perk>>empty() : Optional.of(p))
 						.forGetter(SkinDefinition::perks),
 				rawField("look", look(kind), lookShape(kind) + ", and look is missing or not an object").forGetter(SkinDefinition::look)
-		).apply(i, (name, gradient, materials, description, released, obtainable, extractable, perks, look) ->
-				new SkinDefinition(name, gradient, kind, materials, description, new Release(released, obtainable.orElse(true)), extractable.orElse(true), perks, look)))
-				.validate(d -> nameFitsGradient(d, d.name(), d.gradient())), "kind");
+		).apply(i, (name, gradient, rarity, materials, description, released, obtainable, extractable, perks, look) ->
+				new SkinDefinition(name, gradient, rarity, kind, materials, description, new Release(released, obtainable.orElse(true)), extractable.orElse(true), perks, look)))
+				.validate(d -> nameFitsGradient(d, d.name(), d.gradient())).validate(SkinDefinition::rarityColoursAlone), "kind");
+	}
+
+	/** {@code d}, unless it has a rarity and also a gradient or a colour code in its name: the rarity alone colours it. */
+	private static DataResult<SkinDefinition> rarityColoursAlone(SkinDefinition d) {
+		if (d.rarity().isEmpty()) return DataResult.success(d);
+		if (d.gradient().isPresent()) return DataResult.error(() -> "a skin with a \"rarity\" takes no \"gradient\": the rarity colours its name");
+		if (SkinName.hasColourCode(d.name())) {
+			return DataResult.error(() -> "a name with a \"rarity\" takes no colour codes, only formats such as &o: the rarity colours it");
+		}
+		return DataResult.success(d);
 	}
 
 	/** {@code released}: a date, as {@code "2026/10/31"}. */

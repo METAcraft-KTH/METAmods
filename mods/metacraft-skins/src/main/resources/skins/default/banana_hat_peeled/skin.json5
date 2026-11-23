@@ -1,5 +1,6 @@
 {
-	name: "&a&lPeeled Banana Hat",
+	name: "Peeled Banana Hat",
+	rarity: "uncommon",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

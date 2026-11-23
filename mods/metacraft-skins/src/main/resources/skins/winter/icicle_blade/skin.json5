@@ -1,8 +1,8 @@
 {
-	name: "&lIcicle Blade",
-	gradient: { colors: ["#E8FBFF", "#7FD4F5", "#2E8BC0"] },
+	name: "Icicle Blade",
+	rarity: "rare",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "sword",
 	look: { model: "icicle_blade.json" },
 }

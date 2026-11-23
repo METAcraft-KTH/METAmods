@@ -46,6 +46,10 @@ public final class MobHat extends Item implements PolymerItem {
 	public static final DataComponentType<String> SKIN = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE,
 			Identifier.fromNamespaceAndPath(MetacraftSkins.MOD_ID, "mob_hat"), DataComponentType.<String>builder().persistent(Codec.STRING).build());
 
+	/** Which Skin Box (its id) the hat came from, and so the wearer drops ({@link MobHats#died}). */
+	public static final DataComponentType<String> BOX = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE,
+			Identifier.fromNamespaceAndPath(MetacraftSkins.MOD_ID, "mob_hat_box"), DataComponentType.<String>builder().persistent(Codec.STRING).build());
+
 	public static final MobHat ITEM = Registry.register(BuiltInRegistries.ITEM, ID,
 			new MobHat(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).stacksTo(1)));
 
@@ -53,21 +57,34 @@ public final class MobHat extends Item implements PolymerItem {
 		super(properties);
 	}
 
-	/** Registers the item and its component, at mod initialisation (the component hidden from clients). */
+	/** Registers the item and its components, at mod initialisation (the components hidden from clients). */
 	public static void init() {
 		PolymerComponent.registerDataComponent(SKIN);
+		PolymerComponent.registerDataComponent(BOX);
 	}
 
-	/** A hat of the skin with this id. */
+	/** A hat of the skin with this id, that remembers no box. */
 	public static ItemStack of(String skinId) {
 		ItemStack stack = new ItemStack(ITEM);
 		stack.set(SKIN, skinId);
 		return stack;
 	}
 
+	/** A hat of the skin with this id, from the box with this id. */
+	public static ItemStack of(String skinId, String boxId) {
+		ItemStack stack = of(skinId);
+		stack.set(BOX, boxId);
+		return stack;
+	}
+
 	/** The skin a stack is a Mob Hat of; empty for anything else. */
 	public static Optional<String> skinOf(ItemStack stack) {
 		return stack.is(ITEM) ? Optional.ofNullable(stack.get(SKIN)) : Optional.empty();
+	}
+
+	/** The box a Mob Hat came from; empty for anything else, or a hat that doesn't remember. */
+	public static Optional<String> boxOf(ItemStack stack) {
+		return stack.is(ITEM) ? Optional.ofNullable(stack.get(BOX)) : Optional.empty();
 	}
 
 	/** The hat's skin, if it's a loaded hat now: only then is its Look in the pack. */

@@ -1,5 +1,6 @@
 {
-	name: "&f&lLeaf Crown",
+	name: "Leaf Crown",
+	rarity: "common",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "leaf_crown.json" },

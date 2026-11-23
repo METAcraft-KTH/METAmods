@@ -1,6 +1,7 @@
 package se.metacraft.skins.item;
 
 import com.mojang.serialization.Codec;
+import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.SkinFolder;
 import se.metacraft.skins.Skins;
@@ -36,7 +37,7 @@ import java.util.Optional;
  * The Skin Box, {@code metacraft-skins:skin_box}: a real server item, as the Skin Token is, so
  * recipes, villager trades, workstations and dispensers never take it for the vault clients are
  * sent, and a plain item rather than a block item, so the server never places it. That vault is
- * marked as a box ({@link #LOOK}), which the skins pack draws with the box's own model; a client
+ * marked as a box ({@link #LOOK}, or {@link #look} for a box with its own look), which the skins pack draws with the box's model; a client
  * without the pack draws a vault. Boxes don't
  * stack: each is an item of its own. It stores only
  * its box's id, in a hidden component; its name, look and lore are written every time it's sent
@@ -97,9 +98,23 @@ public final class SkinBox extends Item implements PolymerItem {
 		return skins == null ? client : skins.boxView(stack, client);
 	}
 
-	/** {@code client}, a vault a client is sent, marked as a Skin Box ({@link #LOOK}); the Roll button's too. */
+	/** {@code client}, a vault a client is sent, marked as a Skin Box ({@link #LOOK}). */
 	public static ItemStack drawnAsBox(ItemStack client) {
-		client.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of(), List.of(), List.of(LOOK), List.of()));
+		return marked(client, LOOK);
+	}
+
+	/** {@code client}, a vault a client is sent, marked as this box: with its own look ({@link #look}) if it has one. The Roll button's too. */
+	public static ItemStack drawnAsBox(ItemStack client, BoxSummary box) {
+		return marked(client, box.ownLook() ? look(box.id()) : LOOK);
+	}
+
+	/** The custom model data string that marks a vault as the box with this id, for a box with a look of its own. */
+	public static String look(String boxId) {
+		return LOOK + "/" + boxId;
+	}
+
+	private static ItemStack marked(ItemStack client, String look) {
+		client.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of(), List.of(), List.of(look), List.of()));
 		return client;
 	}
 

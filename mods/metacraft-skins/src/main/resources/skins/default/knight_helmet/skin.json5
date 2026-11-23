@@ -1,5 +1,6 @@
 {
-	name: "&9&lKnight Helmet",
+	name: "Knight Helmet",
+	rarity: "rare",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

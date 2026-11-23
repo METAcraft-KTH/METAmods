@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.skins.BoxResult;
+import se.metacraft.skins.MetacraftSkins;
+import se.metacraft.skins.Skins;
 import se.metacraft.skins.item.SkinBox;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.ChatFormatting;
@@ -140,6 +142,64 @@ public final class BoxItemTests {
 		var report = fx.reload();
 		assertThat(fx.pack().sha1().equals(before) && !report.changed(), "adding a box changed the pack");
 		helper.succeed();
+	}
+
+	/**
+	 * A box with {@code look: { model }} has that model, from its folder in {@code boxes/}, in the pack,
+	 * its textures under {@code skins:item/box/<id>/}, and a case of its own in the vault's item
+	 * definition; clients get its items and its Roll button marked as that box. A box without a look
+	 * keeps the shared model. A look whose model isn't there makes the box Dormant, and no skin may be called "box".
+	 */
+	@GameTest
+	public void aBoxWithItsOwnLookIsDrawnWithIt(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().skin("cleaver", "sword")
+				.box("frosty.json5", "{ name: \"Frosty\", look: { model: \"frosty_box.json\" }, skins: [ { skin: \"cleaver\", weight: 1 } ] }")
+				.box("frosty/frosty_box.json", SkinFixtures.model("frosty_box"))
+				.box("frosty/frosty_box.png", SkinFixtures.pngBytes("box", "frosty_box"))
+				.box("plain.json5", "{ name: \"Plain\", skins: [ { skin: \"cleaver\", weight: 1 } ] }")
+				.box("missing.json5", "{ name: \"Missing\", look: { model: \"nowhere.json\" }, skins: [ { skin: \"cleaver\", weight: 1 } ] }")
+				.lookOnly("box", "helmet");
+		var report = fx.reload();
+		assertThat(report.boxes().loaded().equals(List.of("frosty", "plain")) && report.boxes().warnings().isEmpty()
+				&& report.boxes().rejections().size() == 1 && report.boxes().rejections().getFirst().boxId().equals("missing")
+				&& report.boxes().rejections().getFirst().reason().contains("nowhere.json"), "the boxes: " + report.boxes());
+		assertThat(!report.loaded().contains("box") && report.rejections().stream().anyMatch(r -> r.skinId().equals("box")), "a skin called box: " + report);
+
+		var files = SkinFixtures.unzip(fx.pack().zip());
+		JsonObject model = JsonParser.parseString(SkinFixtures.text(files, "assets/skins/models/item/box/frosty/frosty_box.json")).getAsJsonObject();
+		assertThat(model.getAsJsonObject("textures").get("0").getAsString().equals("skins:item/box/frosty/frosty_box"), "the look's textures: " + model.get("textures"));
+		assertThat(files.containsKey("assets/skins/textures/item/box/frosty/frosty_box.png"), "the pack has no texture for the look");
+		JsonObject vault = JsonParser.parseString(SkinFixtures.text(files, "assets/minecraft/items/vault.json")).getAsJsonObject().getAsJsonObject("model");
+		var cases = vault.getAsJsonArray("cases");
+		JsonObject frosty = cases.get(1).getAsJsonObject();
+		assertThat(cases.size() == 2 && cases.get(0).getAsJsonObject().get("when").getAsString().equals(SkinBox.LOOK)
+				&& frosty.get("when").getAsString().equals(SkinBox.look("frosty")) && SkinBox.look("frosty").equals("metacraft-skins:skin_box/frosty")
+				&& frosty.getAsJsonObject("model").get("model").getAsString().equals("skins:item/box/frosty/frosty_box"), "the vault's item definition: " + vault);
+
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		Skins previous = MetacraftSkins.use(fx.skins);
+		try {
+			assertMarked(PolymerItemUtils.getPolymerItemStack(SkinBox.of("frosty"), viewer.connection.getPacketContext(), helper.getLevel().registryAccess()),
+					SkinBox.look("frosty"), "a Frosty box");
+			assertMarked(PolymerItemUtils.getPolymerItemStack(SkinBox.of("plain"), viewer.connection.getPacketContext(), helper.getLevel().registryAccess()),
+					SkinBox.LOOK, "a Plain box");
+			assertMarked(PolymerItemUtils.getPolymerItemStack(SkinBox.of("missing"), viewer.connection.getPacketContext(), helper.getLevel().registryAccess()),
+					SkinBox.LOOK, "a Dormant box");
+		} finally {
+			MetacraftSkins.use(previous);
+		}
+		assertMarked(SkinBox.drawnAsBox(new ItemStack(Items.VAULT), fx.skins.box("frosty").orElseThrow()), SkinBox.look("frosty"), "the Frosty Roll button");
+
+		// Taking the look away changes the pack back.
+		String with = fx.pack().sha1();
+		fx.box("frosty.json5", "{ name: \"Frosty\", skins: [ { skin: \"cleaver\", weight: 1 } ] }");
+		assertThat(fx.reload().changed() && !fx.pack().sha1().equals(with) && !fx.skins.box("frosty").orElseThrow().ownLook(), "taking the look away");
+		helper.succeed();
+	}
+
+	private static void assertMarked(ItemStack client, String look, String what) {
+		assertThat(client.getOrDefault(DataComponents.CUSTOM_MODEL_DATA, CustomModelData.EMPTY).strings().equals(List.of(look)),
+				what + " is marked " + client.get(DataComponents.CUSTOM_MODEL_DATA));
 	}
 
 	/** A vault as clients have it, marked as a Skin Box. */

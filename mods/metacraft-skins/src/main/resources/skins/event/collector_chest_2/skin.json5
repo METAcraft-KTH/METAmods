@@ -1,5 +1,6 @@
 {
-	name: "&6&lMuseum Showdown: 2026",
+	name: "Museum Showdown: 2026",
+	rarity: "legendary",
 	released: "2026/11/16",
 	obtainable: false,
 	kind: "helmet",

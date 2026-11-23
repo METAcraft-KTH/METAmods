@@ -1,5 +1,6 @@
 {
-	name: "&f&lSun Visor",
+	name: "Sun Visor",
+	rarity: "common",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "sun_visor.json", dyeable: true, color: "#29B6F6" },

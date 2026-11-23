@@ -1,8 +1,8 @@
 {
-	name: "&lCandy Cane Pickaxe",
-	gradient: { colors: ["#E0262F", "#FFFFFF"], mirror: true },
+	name: "Candy Cane Pickaxe",
+	rarity: "rare",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "pickaxe",
 	look: { model: "candy_cane_pickaxe.json" },
 }

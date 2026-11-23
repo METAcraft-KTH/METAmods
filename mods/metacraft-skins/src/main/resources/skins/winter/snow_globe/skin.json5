@@ -1,8 +1,8 @@
 {
-	name: "&lSnow Globe",
-	gradient: { colors: ["#A8E6FF", "#FFFFFF", "#4FA3D9"] },
+	name: "Snow Globe",
+	rarity: "common",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "snow_globe.json" },
 }

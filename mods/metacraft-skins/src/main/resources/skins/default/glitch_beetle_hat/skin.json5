@@ -1,0 +1,8 @@
+{
+	name: "Bug Finder",
+	rarity: "legendary",
+	obtainable: false,
+	kind: "helmet",
+	extractable: false,
+	look: { model: "glitch_beetle_hat.json" },
+}

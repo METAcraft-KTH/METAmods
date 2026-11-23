@@ -35,7 +35,7 @@ public final class SkinDefinitionTests {
 	/**
 	 * The skins that ship in the jar, from every group, go right into a new server's skins folder and load, each with its
 	 * Kind, fitting every Material of it, dyeable where it should be, and Unobtainable where it should be (the
-	 * Winter Wonderland skins and the two test hats); once the folder is there, a deleted one stays deleted.
+	 * event prizes, the test hats and the hats in no box); once the folder is there, a deleted one stays deleted.
 	 */
 	@GameTest
 	public void theShippedSkinsLoadOnce(GameTestHelper helper) {
@@ -49,6 +49,7 @@ public final class SkinDefinitionTests {
 				Map.entry("safari_hat", Kind.HELMET), Map.entry("sensei", Kind.HELMET), Map.entry("shades_cool", Kind.HELMET),
 				Map.entry("spartan", Kind.HELMET), Map.entry("sun_hat_bow", Kind.HELMET), Map.entry("sun_visor", Kind.HELMET),
 				Map.entry("traffic_cone_roadworks", Kind.HELMET), Map.entry("trucker_hat", Kind.HELMET),
+				Map.entry("double_vision_hat", Kind.HELMET), Map.entry("glitch_beetle_hat", Kind.HELMET),
 				// Winter Wonderland.
 				Map.entry("candy_cane_pickaxe", Kind.PICKAXE), Map.entry("candy_sword", Kind.SWORD), Map.entry("icicle_blade", Kind.SWORD),
 				Map.entry("jingle_bell_mace", Kind.MACE), Map.entry("christmas_tree_hat", Kind.HELMET), Map.entry("frozen_head", Kind.HELMET),
@@ -59,14 +60,13 @@ public final class SkinDefinitionTests {
 				Map.entry("yeti_head", Kind.HELMET),
 				// Museum Showdown: 2026.
 				Map.entry("collector_chest_1", Kind.HELMET), Map.entry("collector_chest_2", Kind.HELMET), Map.entry("collector_chest_3", Kind.HELMET),
-				Map.entry("collector_chest_4", Kind.HELMET), Map.entry("collector_chest_5", Kind.HELMET), Map.entry("chest_lid_hat", Kind.HELMET));
+				Map.entry("collector_chest_4", Kind.HELMET), Map.entry("collector_chest_5", Kind.HELMET), Map.entry("chest_lid_hat", Kind.HELMET),
+				Map.entry("ender_chest_lid_hat", Kind.HELMET));
 		Set<String> dyeable = Set.of("testblockhat", "test_cap", "cat_ears", "cowboy_hat", "fishing_hat", "flight_helmet", "headphones_gaming",
 				"knight_helmet", "mobster_hat", "pirate_hat", "plunderers_bandana", "safari_hat", "shades_cool", "spartan", "sun_hat_bow", "sun_visor",
 				"traffic_cone_roadworks", "trucker_hat", "witch_hat");
-		Set<String> unobtainable = Set.of("testblockhat", "test_cap", "fishing_hat", "leaf_crown", "sun_visor", "spartan", "candy_cane_pickaxe", "candy_sword", "icicle_blade", "jingle_bell_mace", "christmas_tree_hat", "frozen_head",
-				"gift_box_head", "gingerbread_head", "hot_cocoa_mug", "lucia_crown", "nutcracker_shako", "penguin_hat", "polar_bear_hat", "reindeer_antlers",
-				"santa_hat", "snow_globe", "snowed_in", "trapper_hat", "yeti_head",
-				"collector_chest_1", "collector_chest_2", "collector_chest_3", "collector_chest_4", "collector_chest_5", "chest_lid_hat");
+		Set<String> unobtainable = Set.of("testblockhat", "test_cap", "fishing_hat", "leaf_crown", "sun_visor", "spartan", "double_vision_hat", "glitch_beetle_hat",
+				"collector_chest_1", "collector_chest_2", "collector_chest_3", "collector_chest_4", "collector_chest_5", "chest_lid_hat", "ender_chest_lid_hat");
 		SkinFixtures fx = SkinFixtures.create();
 		Path folder = fx.skins.skinsFolder();
 		assertThat(DefaultSkins.installIfMissing(folder), "the shipped skins weren't put in " + folder);
@@ -388,6 +388,45 @@ public final class SkinDefinitionTests {
 		assertRejected(report, "one", "skin.json5", "two colours or more");
 		assertRejected(report, "hex", "skin.json5", "gradient.colors[1]: must be a colour written \"#RRGGBB\"");
 		assertRejected(report, "extra", "skin.json5", "unknown field \"reverse\"");
+		helper.succeed();
+	}
+
+	/**
+	 * A rarity colours the name bold in its tier's colour (common white, uncommon green, rare blue,
+	 * legendary gold), keeps the name's own formats, and leaves the plain name as written.
+	 */
+	@GameTest
+	public void aRarityColoursTheName(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create();
+		Map<String, ChatFormatting> tiers = Map.of("common", ChatFormatting.WHITE, "uncommon", ChatFormatting.GREEN, "rare", ChatFormatting.BLUE,
+				"legendary", ChatFormatting.GOLD);
+		for (String tier : tiers.keySet()) {
+			fx.lookOnly(tier, "helmet").file(tier, "skin.json5", "{ name: \"&o" + tier + " Hat\", rarity: \"" + tier + "\", kind: \"helmet\","
+					+ " look: { model: \"" + tier + ".json\" } }");
+		}
+		ReloadReport report = fx.reload();
+		assertThat(report.rejections().isEmpty(), "rejected: " + report);
+		for (var tier : tiers.entrySet()) {
+			SkinSummary skin = fx.skins.skin(tier.getKey()).orElseThrow();
+			List<Style> styles = skin.styledName().getSiblings().stream().map(Component::getStyle).toList();
+			assertThat(skin.displayName().equals(tier.getKey() + " Hat") && styles.size() == 1 && styles.getFirst().isBold() && styles.getFirst().isItalic()
+					&& colour(styles.getFirst(), TextColor.fromLegacyFormat(tier.getValue())), tier.getKey() + " is styled " + styles);
+		}
+		helper.succeed();
+	}
+
+	/** A rarity alone colours a name: not with a gradient, nor with colour codes; and it must be one of the four. */
+	@GameTest
+	public void aBadRarityIsRejected(GameTestHelper helper) {
+		SkinFixtures fx = withHealthyNeighbour().lookOnly("both", "sword").lookOnly("coded", "sword").lookOnly("epic", "sword")
+				.file("both", "skin.json5", "{ name: \"Both\", rarity: \"rare\", gradient: { colors: [\"#000000\", \"#FFFFFF\"] }, kind: \"sword\","
+						+ " look: { model: \"both.json\" } }")
+				.file("coded", "skin.json5", "{ name: \"&cCoded\", rarity: \"rare\", kind: \"sword\", look: { model: \"coded.json\" } }")
+				.file("epic", "skin.json5", "{ name: \"Epic\", rarity: \"epic\", kind: \"sword\", look: { model: \"epic.json\" } }");
+		ReloadReport report = fx.reload();
+		assertRejected(report, "both", "skin.json5", "takes no \"gradient\"");
+		assertRejected(report, "coded", "skin.json5", "a name with a \"rarity\" takes no colour codes");
+		assertRejected(report, "epic", "skin.json5", "\"rarity\" must be one of: common, uncommon, rare, legendary, not \"epic\"");
 		helper.succeed();
 	}
 

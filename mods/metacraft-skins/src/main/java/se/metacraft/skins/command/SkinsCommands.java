@@ -31,7 +31,12 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.GameProfileArgument;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.server.players.NameAndId;
@@ -74,8 +79,10 @@ import java.util.stream.Collectors;
  *       at only;</li>
  *   <li>{@code givebox <targets> <box> [count]} ({@code metacraft-skins:givebox}, gamemasters): Skin Boxes for online players,
  *       1 to 64 of them, as {@code give} hands out tokens; box ids tab-complete, loaded boxes only;</li>
- *   <li>{@code spawnchance [percent]} ({@code metacraft-skins:spawnchance}, admins): shows the Mob Hat chance at local difficulty 0,
- *       or sets it (0 to 100) at once and saves it as {@code mob-hat-chance} in the settings file. No reload or restart needed.</li>
+ *   <li>{@code spawnchance} ({@code metacraft-skins:spawnchance}, admins): a table, to the admin alone, of each Skin Box
+ *       mobs wear hats from and its Mob Hat chance outside a cooldown, in the box's colours; click a row to change it.
+ *       {@code spawnchance <box> <percent>} sets that box's chance (0 to 100) at once and saves it in
+ *       {@code mob-hat-chances} in the settings file, then shows the table. No reload or restart needed.</li>
  * </ul>
  * Extract has no command: players use the Extract button in the Skin Menu.
  * {@code <player>} may be offline: a name is looked up in the server's user cache, as {@code /whitelist} does.
@@ -138,9 +145,11 @@ public final class SkinsCommands {
 													.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 															.executes(ctx -> givebox(ctx, get(skins), IntegerArgumentType.getInteger(ctx, "count")))))))
 							.then(Commands.literal("spawnchance").requires(PermissionPredicates.require(MetacraftSkins.getID("spawnchance"), PermissionLevel.ADMINS))
-									.executes(ctx -> spawnChance(ctx, get(skins)))
-									.then(Commands.argument("percent", DoubleArgumentType.doubleArg(0, 100))
-											.executes(ctx -> setSpawnChance(ctx, get(skins), DoubleArgumentType.getDouble(ctx, "percent")))))));
+									.executes(ctx -> spawnChances(ctx, get(skins)))
+									.then(Commands.argument("box", StringArgumentType.word()).suggests((ctx, builder) -> SharedSuggestionProvider.suggest(MobHats.BOXES, builder))
+											.then(Commands.argument("percent", DoubleArgumentType.doubleArg(0, 100))
+													.executes(ctx -> setSpawnChance(ctx, get(skins), StringArgumentType.getString(ctx, "box"),
+															DoubleArgumentType.getDouble(ctx, "percent"))))))));
 	}
 
 	/** Every skin's id; with {@code dormantToo} false, only the ones that loaded (a Dormant skin can't be granted). */
@@ -286,18 +295,57 @@ public final class SkinsCommands {
 		return targets.size();
 	}
 
-	private static int spawnChance(CommandContext<CommandSourceStack> ctx, Skins skins) {
-		double percent = skins.settings().mobHatChance();
-		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance: " + PERCENT.format(percent) + "% at local difficulty 0, falling to none at "
-				+ PERCENT.format(MobHats.NO_HATS_AT) + ". Set it with /itemskins spawnchance <percent>."), false);
+	/** The table of Mob Hat chances, to the one who asked alone. */
+	private static int spawnChances(CommandContext<CommandSourceStack> ctx, Skins skins) {
+		ctx.getSource().sendSuccess(() -> spawnChanceTable(skins), false);
+		return MobHats.BOXES.size();
+	}
+
+	/**
+	 * Sets one box's chance: to the admins (as vanilla tells them of a change), the change; to the one who
+	 * set it alone, the table after. A box no mob wears hats from is refused.
+	 */
+	private static int setSpawnChance(CommandContext<CommandSourceStack> ctx, Skins skins, String box, double percent) {
+		if (!MobHats.BOXES.contains(box)) {
+			ctx.getSource().sendFailure(Component.literal("No mob wears hats from " + box + ". Mobs wear hats from: " + String.join(", ", MobHats.BOXES) + "."));
+			return 0;
+		}
+		double before = skins.setMobHatChance(box, percent);
+		String name = skins.box(box).map(BoxSummary::displayName).orElse(box);
+		ctx.getSource().sendSuccess(() -> Component.literal(name + " Mob Hat chance set to " + PERCENT.format(percent) + "% (was " + PERCENT.format(before)
+				+ "%) for mobs spawning from now on. Saved in " + skins.settingsFile().getFileName() + "."), true);
+		ctx.getSource().sendSuccess(() -> spawnChanceTable(skins), false);
 		return 1;
 	}
 
-	private static int setSpawnChance(CommandContext<CommandSourceStack> ctx, Skins skins, double percent) {
-		double before = skins.setMobHatChance(percent);
-		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance set to " + PERCENT.format(percent) + "% (was " + PERCENT.format(before)
-				+ "%) at local difficulty 0, for mobs spawning from now on. Saved in " + skins.settingsFile().getFileName() + "."), true);
-		return 1;
+	/**
+	 * The Mob Hat chances, one row per box mobs wear hats from ({@link MobHats#BOXES}): its name in its
+	 * colours, its chance in the name's first colour; a click on a row puts {@code /itemskins spawnchance <box> }
+	 * in the chat box. Then any other Skin Box, grey, as no mob wears its hats, and a line on the cooldown.
+	 */
+	static Component spawnChanceTable(Skins skins) {
+		MutableComponent table = Component.empty().append(Component.literal("Mob Hat chances").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+		for (String id : MobHats.BOXES) {
+			Optional<BoxSummary> box = skins.box(id);
+			Component name = box.map(BoxSummary::styledName).orElseGet(() -> Component.literal(id).withStyle(ChatFormatting.GRAY));
+			TextColor colour = name.visit((style, text) -> Optional.ofNullable(style.getColor()), Style.EMPTY)
+					.orElse(TextColor.fromLegacyFormat(ChatFormatting.WHITE));
+			MutableComponent row = Component.literal("\n  ").append(name)
+					.append(Component.literal("  " + PERCENT.format(skins.settings().mobHatChance(id)) + "%").withStyle(s -> s.withColor(colour).withBold(true)));
+			if (box.filter(b -> !b.dormant()).isEmpty()) {
+				row.append(Component.literal(id.equals(MobHats.CLASSIC) ? "  (Dormant: no hats)" : "  (Dormant: Classic hats instead)")
+						.withStyle(ChatFormatting.GRAY));
+			}
+			table.append(row.withStyle(s -> s.withClickEvent(new ClickEvent.SuggestCommand("/itemskins spawnchance " + id + " "))
+					.withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to change the " + id + " chance")))));
+		}
+		for (BoxSummary other : skins.boxes()) {
+			if (MobHats.BOXES.contains(other.id())) continue;
+			table.append(Component.literal("\n  " + other.displayName() + "  no mob wears its hats").withStyle(ChatFormatting.DARK_GRAY));
+		}
+		return table.append(Component.literal("\n" + PERCENT.format(MobHats.COOLDOWN_CUT * 100) + "% less for " + MobHats.COOLDOWN_MIN.toHours()
+				+ " to " + MobHats.COOLDOWN_MAX.toHours() + " hours around where a mob spawned wearing a hat, unless it despawns."
+				+ " Click a box, or /itemskins spawnchance <box> <percent>.").withStyle(ChatFormatting.GRAY));
 	}
 
 	private static int grant(CommandContext<CommandSourceStack> ctx, Skins skins) throws CommandSyntaxException {

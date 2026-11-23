@@ -11,14 +11,18 @@ import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.MobHats;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.item.MobHat;
 
+import java.time.Instant;
+
 /**
- * As a mob spawns, it may put on a hat ({@link MobHats#spawned}). A zombie's and a skeleton's
+ * As a mob spawns, it may put on a hat ({@link MobHats#spawned}); as it despawns, the cooldown its
+ * hat started ends ({@link MobHats#despawned}). A zombie's and a skeleton's
  * own {@code finalizeSpawn} call this one first and only then fill their empty armour slots, so a
  * hat keeps any helmet (and Halloween's pumpkin) off. A mob that picks up items never swaps its hat
  * for one.
@@ -29,7 +33,17 @@ public abstract class MobMixin {
 	private void putOnHat(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData data,
 			CallbackInfoReturnable<SpawnGroupData> cir) {
 		Skins skins = MetacraftSkins.skins();
-		if (skins != null) MobHats.spawned(skins, (Mob) (Object) this, difficulty);
+		if (skins != null) MobHats.spawned(skins, (Mob) (Object) this, Instant.now());
+	}
+
+	/**
+	 * Just before each {@code discard()} in {@code checkDespawn}, so only as a mob despawns (too far from
+	 * players, or Peaceful), not on every tick's check. {@code checkDespawn} never removes a mob to kill it.
+	 */
+	@Inject(method = "checkDespawn", at = @At(value = "INVOKE", target = "discard()V"))
+	private void endHatCooldown(CallbackInfo ci) {
+		Skins skins = MetacraftSkins.skins();
+		if (skins != null) MobHats.despawned(skins, (Mob) (Object) this);
 	}
 
 	@Inject(method = "canReplaceCurrentItem", at = @At("HEAD"), cancellable = true)

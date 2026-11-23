@@ -62,7 +62,7 @@ public final class PerkLines {
 			case Perk.Fire f -> Component.literal("sets " + other(trigger) + " on fire for " + NUMBER.format(f.seconds()) + "s");
 			case Perk.Knockback k -> Component.literal(k.lift() > 0 && k.strength() == 0 ? "launches " + other(trigger) : "knocks " + other(trigger) + " back");
 			case Perk.Heal h -> Component.literal("heals " + hearts(h.amount()));
-			case Perk.Particle p -> Component.literal(trigger.lasting() ? "a particle aura" : "particles");
+			case Perk.Particle p -> Component.literal(!trigger.lasting() ? "particles" : p.whileMoving() ? "a particle aura while moving" : "a particle aura");
 			case Perk.Sound s -> Component.literal(trigger.lasting() ? "an occasional sound" : "a sound");
 		};
 	}

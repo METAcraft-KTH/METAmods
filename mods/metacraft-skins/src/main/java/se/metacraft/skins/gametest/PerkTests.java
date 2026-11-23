@@ -315,6 +315,86 @@ public final class PerkTests {
 		});
 	}
 
+	/**
+	 * A head aura with {@code while_moving} plays only while the wearer moves. The players near see it
+	 * around the top of the head; the wearer sees each particle behind their eyes, by where they face,
+	 * never moving forward, so it's never in their view in first person.
+	 */
+	@GameTest(maxTicks = 200)
+	public void aHeadAuraWhileMovingStaysOutOfTheWearersView(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().perky("lid", "helmet", """
+				[ { trigger: "worn", effects: [ { type: "particle", particle: { type: "minecraft:portal" }, at: "head", while_moving: true,
+					count: 3, interval: 2, speed: 0.4 } ] } ]""");
+		fx.reload();
+		SkinFixtures.Listening wearer = SkinFixtures.join(helper);
+		SkinFixtures.Listening watcher = SkinFixtures.join(helper);
+		var start = helper.absoluteVec(new net.minecraft.world.phys.Vec3(1.5, 1, 1.5));
+		try {
+			wearer.getInventory().clearContent();
+			wearer.setPos(start);
+			watcher.setPos(start.add(3, 0, 0));
+			wearer.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+			fx.skins.grant(wearer.nameAndId(), "lid");
+			fx.skins.apply(wearer, "lid", ItemLocation.worn(EquipmentSlot.HEAD));
+		} catch (RuntimeException | Error e) {
+			helper.getLevel().getServer().getPlayerList().remove(wearer);
+			helper.getLevel().getServer().getPlayerList().remove(watcher);
+			throw e;
+		}
+		wearer.sent(ClientboundLevelParticlesPacket.class);
+		watcher.sent(ClientboundLevelParticlesPacket.class);
+		int[] ticks = {0};
+		List<ClientboundLevelParticlesPacket> whileStill = new java.util.ArrayList<>();
+		List<String> own = new java.util.ArrayList<>(), inView = new java.util.ArrayList<>();
+		helper.onEachTick(() -> {
+			int t = ticks[0]++;
+			if (t >= 40) return;
+			// Still for 20 ticks, then walking 0.2 blocks a tick for 20, facing the way they walk (south, +z).
+			wearer.setYRot(0);
+			if (t >= 20) wearer.setPos(start.add(0, 0, 0.2 * (t - 19)));
+			fx.skins.updateLastingPerks(wearer);
+			if (t == 19) whileStill.addAll(watcher.sent(ClientboundLevelParticlesPacket.class));
+			// The wearer's own: one particle a packet, at the back of the head, heading back or sideways only.
+			for (var p : wearer.sent(ClientboundLevelParticlesPacket.class)) {
+				if (p.particle().getType() != ParticleTypes.PORTAL) continue;
+				own.add(p.count() + "@" + p.z());
+				if (p.count() != 0 || p.z() > wearer.getEyePosition().z - 0.45 + 1e-6 || p.zDist() > 1e-6 || p.y() <= wearer.getEyeY()) {
+					inView.add("count " + p.count() + ", z " + (p.z() - wearer.getEyePosition().z) + " from the eyes, moving " + p.zDist());
+				}
+			}
+		});
+		helper.runAfterDelay(45, () -> {
+			helper.getLevel().getServer().getPlayerList().remove(wearer);
+			helper.getLevel().getServer().getPlayerList().remove(watcher);
+			List<ClientboundLevelParticlesPacket> seen = watcher.sent(ClientboundLevelParticlesPacket.class).stream()
+					.filter(p -> p.particle().getType() == ParticleTypes.PORTAL).toList();
+			assertThat(whileStill.stream().noneMatch(p -> p.particle().getType() == ParticleTypes.PORTAL), "the aura played while the wearer stood still");
+			assertThat(seen.size() == 10 && seen.stream().allMatch(p -> p.count() == 3 && p.xMaxSpeed() == 0.4f), "20 ticks of walking sent the watcher "
+					+ seen.size() + " bursts: " + seen.stream().map(p -> p.count() + "x" + p.xMaxSpeed()).toList());
+			assertThat(seen.stream().allMatch(p -> p.y() > wearer.getEyeY()), "a burst was below the wearer's eyes: " + seen.stream().map(p -> p.y()).toList());
+			assertThat(own.size() == 30, "20 ticks of walking sent the wearer " + own.size() + " particles, not 10 bursts of 3: " + own);
+			assertThat(inView.isEmpty(), "the wearer's own particles could get in their view: " + inView);
+			helper.succeed();
+		});
+	}
+
+	/** {@code at} and {@code while_moving} are for lasting Perks only, and {@code at} is body or head. */
+	@GameTest
+	public void aHeadAuraIsForLastingPerksOnly(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create()
+				.perky("on_hit", "sword", "[ { trigger: \"hit\", effects: [ { type: \"particle\", particle: { type: \"minecraft:portal\" }, at: \"head\" } ] } ]")
+				.perky("feet", "helmet", "[ { trigger: \"worn\", effects: [ { type: \"particle\", particle: { type: \"minecraft:portal\" }, at: \"feet\" } ] } ]")
+				.perky("fine", "helmet", "[ { trigger: \"worn\", effects: [ { type: \"particle\", particle: { type: \"minecraft:portal\" }, at: \"head\","
+						+ " while_moving: true } ] } ]");
+		ReloadReport report = fx.reload();
+		assertRejected(report, "on_hit", "at and while_moving are for held and worn Perks only");
+		assertRejected(report, "feet", "must be body or head, not \"feet\"");
+		assertThat(report.loaded().contains("fine"), "a head aura while moving was rejected: " + report.rejections());
+		String line = se.metacraft.skins.PerkLines.line(fx.skins.skin("fine").orElseThrow().perks().getFirst()).getString();
+		assertThat(line.equals("While worn: a particle aura while moving"), "the Perk's line: " + line);
+		helper.succeed();
+	}
+
 	static void assertEffect(net.minecraft.world.entity.LivingEntity player, Holder<MobEffect> effect, int amplifier, int duration, String when) {
 		MobEffectInstance instance = player.getEffect(effect);
 		assertThat(instance != null && instance.getAmplifier() == amplifier && (duration < 0 || instance.getDuration() == duration),

@@ -1,5 +1,6 @@
 {
-	name: "&a&lHard Hat",
+	name: "Hard Hat",
+	rarity: "uncommon",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

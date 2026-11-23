@@ -1,5 +1,6 @@
 {
-	name: "&f&lSun Hat",
+	name: "Sun Hat",
+	rarity: "common",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

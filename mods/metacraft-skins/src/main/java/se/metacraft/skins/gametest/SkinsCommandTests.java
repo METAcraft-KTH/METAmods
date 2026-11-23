@@ -6,13 +6,16 @@ import com.mojang.util.UndashedUuid;
 import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.ItemLocation;
 import se.metacraft.skins.MetacraftSkins;
+import se.metacraft.skins.MobHats;
 import se.metacraft.skins.SkinMarker;
 import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.SkinsPack;
+import se.metacraft.skins.SkinsSettings;
 import se.metacraft.skins.compat.resource_packs.ResourcePacksCompat;
 import se.metacraft.skins.pack.PackDelivery;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -410,7 +413,7 @@ public final class SkinsCommandTests {
 			List<String> unknown = suggestions(server, "itemskins revoke nobody_by_that_name ");
 			assertThat(unknown.isEmpty(), "revoke suggests " + unknown + " for a name it doesn't know");
 
-			// Another player's menu: theirs to look at, one owned skin and one "???".
+			// Another player's menu: theirs to look at, one owned skin and one greyed out.
 			fx.skins.revoke(new NameAndId(offlineId, offline), "candy_cane_test");
 			server.getCommands().performPrefixedCommand(admin.createCommandSourceStack(), "itemskins " + offline);
 			assertThat(!SkinMenuTests.title(admin).startsWith(offline), "a player without the view permission opened " + SkinMenuTests.title(admin));
@@ -418,7 +421,9 @@ public final class SkinsCommandTests {
 			assertThat(SkinMenuTests.title(admin).equals(offline + "'s Skins"), "the admin's view opened " + SkinMenuTests.title(admin));
 			List<String> shown = List.of(admin.containerMenu.getSlot(0).getItem().getHoverName().getString(),
 					admin.containerMenu.getSlot(1).getItem().getHoverName().getString());
-			assertThat(shown.contains("???") && shown.contains("crown_test skin"), "the view shows " + shown);
+			List<String> models = List.of(String.valueOf(admin.containerMenu.getSlot(0).getItem().get(DataComponents.ITEM_MODEL)),
+					String.valueOf(admin.containerMenu.getSlot(1).getItem().get(DataComponents.ITEM_MODEL)));
+			assertThat(models.contains("skins:locked/candy_cane_test") && shown.contains("crown_test skin"), "the view shows " + shown + " " + models);
 			SkinMenuTests.click(admin, 0);
 			SkinMenuTests.click(admin, 1);
 			assertThat(SkinMenuTests.title(admin).equals(offline + "'s Skins"), "clicking a skin in the view opened " + SkinMenuTests.title(admin));
@@ -573,21 +578,31 @@ public final class SkinsCommandTests {
 	}
 
 	/**
-	 * {@code /itemskins spawnchance} shows the Mob Hat chance, and with a percent sets it at once and
-	 * saves it; it's for admins only, and a percent outside 0 to 100 is refused. Set back to 0.2% after.
+	 * {@code /itemskins spawnchance} shows a table of each box mobs wear hats from and its chance (and
+	 * any other box as one no mob wears), to the admin alone. With a box and a percent it sets that box's
+	 * chance at once, leaving the other box's, saves it, and shows the table again; it's for admins only,
+	 * and a percent outside 0 to 100 or a box no mob wears is refused. Set back to 5% after.
 	 */
 	private static void spawnChance(MinecraftServer server, SkinFixtures fx) {
+		String footer = "99% less for 1 to 6 hours around where a mob spawned wearing a hat, unless it despawns."
+				+ " Click a box, or /itemskins spawnchance <box> <percent>.";
 		List<String> shown = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance");
-		assertThat(shown.equals(List.of("Mob Hat chance: 0.2% at local difficulty 0, falling to none at 6.75. Set it with /itemskins spawnchance <percent>.")),
-				"spawnchance showed " + shown);
-		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 1.5");
-		assertThat(set.equals(List.of("Mob Hat chance set to 1.5% (was 0.2%) at local difficulty 0, for mobs spawning from now on. Saved in metacraft-skins.json5."))
-				&& fx.skins.settings().mobHatChance() == 1.5, "spawnchance 1.5 answered " + set + ", the setting " + fx.skins.settings());
-		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 101");
-		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance -1");
-		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance 50");
-		assertThat(fx.skins.settings().mobHatChance() == 1.5, "a refused spawnchance set it to " + fx.skins.settings().mobHatChance());
-		fx.skins.setMobHatChance(0.2);
+		List<String> table = shown.size() == 1 ? List.of(shown.getFirst().split("\n")) : List.of();
+		assertThat(table.size() >= 4 && table.getFirst().equals("Mob Hat chances") && table.get(1).startsWith("  ") && table.get(1).contains("  5%")
+				&& table.get(2).contains("  5%") && table.getLast().equals(footer), "spawnchance showed " + shown);
+		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance winter 1.5");
+		String winter = fx.skins.box(MobHats.WINTER).map(BoxSummary::displayName).orElse(MobHats.WINTER);
+		assertThat(set.size() == 2 && set.getFirst().equals(winter + " Mob Hat chance set to 1.5% (was 5%) for mobs spawning from now on."
+				+ " Saved in metacraft-skins.json5.") && set.get(1).contains("  1.5%") && set.get(1).contains("  5%")
+				&& fx.skins.settings().mobHatChance(MobHats.WINTER) == 1.5 && fx.skins.settings().mobHatChance(MobHats.CLASSIC) == 5,
+				"spawnchance winter 1.5 answered " + set + ", the setting " + fx.skins.settings());
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance winter 101");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance winter -1");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance treats 50");
+		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance winter 50");
+		assertThat(fx.skins.settings().mobHatChance(MobHats.WINTER) == 1.5 && fx.skins.settings().mobHatChances().keySet().equals(Set.copyOf(MobHats.BOXES)),
+				"a refused spawnchance changed the chances to " + fx.skins.settings().mobHatChances());
+		fx.skins.setMobHatChance(MobHats.WINTER, SkinsSettings.MOB_HAT_CHANCE);
 	}
 
 	/**

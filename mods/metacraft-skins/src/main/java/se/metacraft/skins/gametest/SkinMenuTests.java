@@ -295,8 +295,9 @@ public final class SkinMenuTests {
 
 	/**
 	 * "Your Skins" lists every skin that loaded, unobtainable ones too, oldest release first and
-	 * undated ones last, by name: the player's own with their Look, the rest as a light grey dye named
-	 * a bold "???" that clicking does nothing for. Owning one turns its "???" into its Look in the same slot.
+	 * undated ones last, by name: the player's own with their Look; an obtainable one they don't own
+	 * with its Locked Look (behind grey glass), named, saying "Not owned yet"; an unobtainable one as a
+	 * grey dye named a bold "???". Clicking either does nothing. Owning one turns it into its Look in the same slot.
 	 */
 	@GameTest
 	public void skinsNotOwnedShowAsQuestionMarksInReleaseOrder(GameTestHelper helper) {
@@ -312,18 +313,20 @@ public final class SkinMenuTests {
 		SkinMenu.open(player, fx.skins);
 
 		// Zebra Hat (2026/10/01), Apple Hat (2026/11/01), then the undated Candy Sword and Crown; the Dormant hat isn't listed.
-		// Apple Hat is unobtainable: a grey dye rather than a light grey one, saying so.
-		for (int i = 0; i < 3; i++) {
-			boolean obtainable = i != 1;
-			assertThat(slot(player, i).is(obtainable ? Items.DYE.lightGray() : Items.DYE.gray()) && name(player, i).equals("???") && boldName(player, i)
-					&& lore(player, i).equals(List.of(obtainable ? "Not owned yet" : "Unobtainable")),
-					"slot " + i + " is " + slot(player, i) + " " + name(player, i) + " " + lore(player, i));
+		// Apple Hat is unobtainable: a grey "???" dye, saying so. The others show their Locked Look.
+		assertThat(slot(player, 1).is(Items.DYE.gray()) && name(player, 1).equals("???") && boldName(player, 1) && lore(player, 1).equals(List.of("Unobtainable")),
+				"slot 1 is " + slot(player, 1) + " " + name(player, 1) + " " + lore(player, 1));
+		for (int i : new int[] { 0, 2 }) {
+			String id = i == 0 ? "old_test" : "candy_sword_test";
+			assertThat(("skins:locked/" + id).equals(String.valueOf(slot(player, i).get(DataComponents.ITEM_MODEL))) && lore(player, i).getLast().equals("Not owned yet"),
+					"slot " + i + " is " + slot(player, i).get(DataComponents.ITEM_MODEL) + " " + name(player, i) + " " + lore(player, i));
 		}
+		assertThat(name(player, 0).equals("Zebra Hat") && name(player, 2).equals("Candy Sword"), "the names: " + name(player, 0) + ", " + name(player, 2));
 		assertThat(name(player, 3).equals("Crown") && "skins:crown_test".equals(String.valueOf(slot(player, 3).get(DataComponents.ITEM_MODEL))),
 				"the owned skin is " + name(player, 3));
 		assertThat(slot(player, 4).isEmpty(), "the Dormant skin is listed: " + slot(player, 4));
 		click(player, 0);
-		assertThat(title(player).equals("Your Skins"), "clicking a ??? opened " + title(player));
+		assertThat(title(player).equals("Your Skins"), "clicking a skin not owned opened " + title(player));
 
 		fx.skins.grant(player.nameAndId(), "candy_sword_test");
 		fx.skins.grant(player.nameAndId(), "old_test");
@@ -394,7 +397,7 @@ public final class SkinMenuTests {
 	 * The Extract button opens "Extract: choose a skin": only the player's own skins, a skin on an item
 	 * saying to remove it first and doing nothing when clicked, Back to "Your Skins". Clicking a skin
 	 * opens its Extract screen, whose Cancel and Extract both come back to "Your Skins", where the
-	 * extracted skin is a "???" again.
+	 * extracted skin is greyed out again.
 	 */
 	/** A skin marked {@code extractable: false} is listed for Extract but says it can't be, and clicking it does nothing. */
 	@GameTest
@@ -457,7 +460,8 @@ public final class SkinMenuTests {
 			assertThat(title(player).equals("Your Skins"), "Extract went to " + title(player));
 			assertThat(!fx.skins.ownedSkins(player.getUUID()).owns("crown_test") && SkinToken.skinOf(player.getInventory().getItem(1)).equals(Optional.of("crown_test")),
 					"Crown wasn't extracted: " + player.getInventory().getItem(1));
-			assertThat(name(player, 1).equals("???"), "the extracted Crown shows as " + name(player, 1));
+			assertThat("skins:locked/crown_test".equals(String.valueOf(slot(player, 1).get(DataComponents.ITEM_MODEL))),
+					"the extracted Crown shows as " + slot(player, 1).get(DataComponents.ITEM_MODEL));
 		} finally {
 			helper.getLevel().getServer().getPlayerList().remove(player);
 		}

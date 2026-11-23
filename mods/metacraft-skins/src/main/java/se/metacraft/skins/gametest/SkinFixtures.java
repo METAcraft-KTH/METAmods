@@ -198,11 +198,19 @@ final class SkinFixtures {
 		}
 	}
 
-	/** A Skin Box file, {@code config/metacraft-skins/boxes/<name>}, as an admin writes it (name usually {@code <id>.json5}). */
+	/**
+	 * A Skin Box file, {@code config/metacraft-skins/boxes/<name>}, as an admin writes it (name usually
+	 * {@code <id>.json5}, or {@code <id>/<file>} for a file of the box's look).
+	 */
 	SkinFixtures box(String name, String json5) {
+		return box(name, json5.getBytes(StandardCharsets.UTF_8));
+	}
+
+	SkinFixtures box(String name, byte[] bytes) {
 		try {
-			Files.createDirectories(skins.boxesFolder());
-			Files.writeString(skins.boxesFolder().resolve(name), json5, StandardCharsets.UTF_8);
+			Path file = skins.boxesFolder().resolve(name);
+			Files.createDirectories(file.getParent());
+			Files.write(file, bytes);
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}

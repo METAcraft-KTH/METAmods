@@ -1,5 +1,6 @@
 {
-	name: "&a&lFlight Helmet",
+	name: "Flight Helmet",
+	rarity: "uncommon",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

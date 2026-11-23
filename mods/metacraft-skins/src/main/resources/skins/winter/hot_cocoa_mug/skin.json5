@@ -1,8 +1,8 @@
 {
-	name: "&lHot Cocoa Mug",
-	gradient: { colors: ["#5C3317", "#C68B59", "#FFF5E6"] },
+	name: "Hot Cocoa Mug",
+	rarity: "common",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "hot_cocoa_mug.json" },
 }
