@@ -65,7 +65,7 @@ public record SkinsSettings(boolean perksAffectPlayers, boolean perksEnabled, So
 
 	/** The chance, in percent, a mob that would wear a hat from {@code box} puts one on (outside a cooldown). */
 	public double mobHatChance(String box) {
-		return mobHatChances.getOrDefault(box, MOB_HAT_CHANCE);
+		return mobHatChances.getOrDefault(box, 0.0);
 	}
 
 	/** These settings with another chance for {@code box}. */
