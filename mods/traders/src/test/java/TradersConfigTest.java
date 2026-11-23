@@ -45,7 +45,7 @@ public class TradersConfigTest {
 	public void defaultsRoundTripThroughTheFile(@TempDir Path dir) {
 		var file = dir.resolve("traders.json5");
 		JanksonHelper.save(file, TradersConfig.CODEC.codec(), TradersConfig.createDefault());
-		assertEquals(Optional.of(TradersConfig.createDefault()), JanksonHelper.load(file, TradersConfig.CODEC.codec()));
+		assertEquals(DataResult.success(TradersConfig.createDefault()), JanksonHelper.load(file, TradersConfig.CODEC.codec()));
 	}
 
 	@Test
@@ -70,7 +70,7 @@ public class TradersConfigTest {
 					},
 				}
 				""");
-		assertEquals(Optional.of(TradersConfig.createDefault()), JanksonHelper.load(file, TradersConfig.CODEC.codec()));
+		assertEquals(DataResult.success(TradersConfig.createDefault()), JanksonHelper.load(file, TradersConfig.CODEC.codec()));
 	}
 
 	@Test
