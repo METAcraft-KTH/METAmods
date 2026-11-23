@@ -28,7 +28,7 @@ public record SkinsSettings(boolean perksAffectPlayers, boolean perksEnabled, So
 	public static final double MOB_HAT_CHANCE = 5;
 	/** The default {@code mob-hat-chances}: {@link #MOB_HAT_CHANCE} for each of {@link MobHats#BOXES}. */
 	public static final SortedMap<String, Double> MOB_HAT_CHANCES = sorted(MobHats.BOXES.stream()
-			.collect(Collectors.toMap(box -> box, box -> MOB_HAT_CHANCE)));
+			.collect(Collectors.toMap(box -> box, box -> box.equals("classic") ? MOB_HAT_CHANCE : 0)));
 	public static final SkinsSettings DEFAULTS = new SkinsSettings(true, true, MOB_HAT_CHANCES);
 
 	public SkinsSettings {
