@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"key": {
+		"M": "#c:music_discs",
+		"C": "minecraft:ancient_debris"
+	},
+	"pattern": [
+		"MMM",
+		"MCM",
+		"MMM"
+	],
+	"result": {
+		"count": 1,
+		"id": "portable_jukebox:jukebox_upgrade_tier_2"
+	}
+}

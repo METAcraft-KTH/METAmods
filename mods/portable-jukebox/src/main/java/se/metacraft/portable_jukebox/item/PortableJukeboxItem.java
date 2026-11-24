@@ -1,6 +1,13 @@
 package se.metacraft.portable_jukebox.item;
 
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
@@ -20,7 +27,10 @@ import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.entity.Entities;
 import se.metacraft.portable_jukebox.gui.PortableJukeboxGui;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
+import se.metacraft.portable_jukebox.upgrade.JukeboxModels;
+import se.metacraft.portable_jukebox.upgrade.JukeboxUpgrades;
 
+import java.util.List;
 import java.util.Optional;
 
 public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
@@ -66,6 +76,35 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 		Optional.ofNullable(entity.getItem().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
 			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc.getItem());
 		});
+		for (var stored : JukeboxUpgrades.getStorage(entity.getItem())) {
+			if (!stored.isEmpty()) {
+				Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), stored);
+			}
+		}
+	}
+
+	/** An upgraded jukebox is shown as paper wearing its tier's model, so the client doesn't predict placing a head. */
+	@Override
+	public Item getPolymerItem(ItemStack itemStack, PacketContext context) {
+		return JukeboxModels.hasModel(JukeboxUpgrades.getTier(itemStack)) ? Items.PAPER : super.getPolymerItem(itemStack, context);
+	}
+
+	@Override
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		int tier = JukeboxUpgrades.getTier(stack);
+		return JukeboxModels.hasModel(tier) ? JukeboxModels.itemModel(tier) : super.getPolymerItemModel(stack, context, lookup);
+	}
+
+	@Override
+	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+		int tier = JukeboxUpgrades.getTier(stack);
+		if (tier > 0) {
+			tooltip.add(Component.translatable("portable_jukebox.tooltip.tier", tier, JukeboxUpgrades.MAX_TIER).withStyle(ChatFormatting.GRAY));
+		}
+		long stored = JukeboxUpgrades.getStorage(stack).stream().filter(s -> !s.isEmpty()).count();
+		if (stored > 0) {
+			tooltip.add(Component.translatable("portable_jukebox.tooltip.stored", stored).withStyle(ChatFormatting.GRAY));
+		}
 	}
 
 	public static Optional<ItemStack> getDiscFromJukebox(ItemInstance stack) {
