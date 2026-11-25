@@ -9,7 +9,9 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
 
 public class Items {
@@ -21,9 +23,19 @@ public class Items {
 			)
 	);
 
+	public static final JukeboxUpgradeItem JUKEBOX_UPGRADE_TIER_1 = registerUpgrade(1, Rarity.RARE);
+	public static final JukeboxUpgradeItem JUKEBOX_UPGRADE_TIER_2 = registerUpgrade(2, Rarity.EPIC);
+
 	public static void init() {
 		Components.init();
 		CreativeTabNamespaces.add(PortableJukebox.NAMESPACE);
+	}
+
+	private static JukeboxUpgradeItem registerUpgrade(int tier, Rarity rarity) {
+		return register(
+			"jukebox_upgrade_tier_" + tier, settings -> new JukeboxUpgradeItem(settings, tier),
+			new Item.Properties().stacksTo(16).rarity(rarity).component(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)
+		);
 	}
 
 	private static <T extends Item> T register(String id, Function<Item.Properties, T> item, Item.Properties settings) {
