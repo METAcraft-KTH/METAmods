@@ -109,9 +109,7 @@ public class ObjectCache {
 		}
 		if (!hasSecondaryReloaded) {
 			hasSecondaryReloaded = true;
-			TaskScheduler.scheduleImmediately(server, () -> {
-				server.reloadResources(server.getPackRepository().getSelectedIds());
-			});
+			server.reloadResources(server.getPackRepository().getSelectedIds());
 		}
 		save();
 	}
