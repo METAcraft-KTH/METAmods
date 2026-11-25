@@ -1,4 +1,4 @@
-package se.metacraft.portable_jukebox.upgrade;
+package se.metacraft.portable_jukebox.item;
 
 import eu.pb4.polymer.core.api.item.SimplePolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
@@ -6,12 +6,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import se.metacraft.portable_jukebox.upgrade.JukeboxUpgrades;
 
 import java.util.List;
 
 /**
- * A Portable Jukebox upgrade of one tier. Crafted with the jukebox to raise it to this tier
- * ({@link JukeboxUpgradeRecipe}). A vanilla client sees a glinting disc fragment.
+ * A Portable Jukebox upgrade of one tier. A vanilla client sees a glinting disc fragment.
  */
 public class JukeboxUpgradeItem extends SimplePolymerItem {
 
@@ -40,9 +40,5 @@ public class JukeboxUpgradeItem extends SimplePolymerItem {
 		if (tier == JukeboxUpgrades.CONFIGURATION_TIER) {
 			tooltip.add(Component.translatable("item.portable_jukebox.jukebox_upgrade.tooltip.configuration").withStyle(ChatFormatting.GRAY));
 		}
-		tooltip.add(Component.translatable(
-			tier == 1 ? "item.portable_jukebox.jukebox_upgrade.tooltip.how_first" : "item.portable_jukebox.jukebox_upgrade.tooltip.how",
-			tier - 1
-		).withStyle(ChatFormatting.DARK_GRAY));
 	}
 }

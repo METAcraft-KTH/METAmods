@@ -81,6 +81,16 @@ public record PortableJukeboxConfiguration(float volume, float pitch) {
 		return Math.round(Math.min(volume, 1.0f) * 100) + "%";
 	}
 
+	/** Above 1.0 the volume is past full loudness: it only makes the song carry further. */
+	public static boolean isRangeBoosted(float volume) {
+		return volume > 1.0f + EPSILON;
+	}
+
+	/** How many times the normal range the song carries, e.g. "3x". */
+	public static String formatRangeBoost(float volume) {
+		return String.format(Locale.ROOT, "%.1fx", Math.max(volume, 1.0f)).replace(".0x", "x");
+	}
+
 	/** How far away, in blocks, the song can be heard. */
 	public static int hearingRange(float volume) {
 		return Math.round(16 * Math.max(volume, 1.0f));

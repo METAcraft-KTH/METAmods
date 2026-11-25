@@ -3,10 +3,6 @@ package se.metacraft.portable_jukebox.item;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,7 +23,6 @@ import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.entity.Entities;
 import se.metacraft.portable_jukebox.gui.PortableJukeboxGui;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
-import se.metacraft.portable_jukebox.upgrade.JukeboxModels;
 import se.metacraft.portable_jukebox.upgrade.JukeboxUpgrades;
 
 import java.util.List;
@@ -81,18 +76,6 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 				Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), stored);
 			}
 		}
-	}
-
-	/** An upgraded jukebox is shown as paper wearing its tier's model, so the client doesn't predict placing a head. */
-	@Override
-	public Item getPolymerItem(ItemStack itemStack, PacketContext context) {
-		return JukeboxModels.hasModel(JukeboxUpgrades.getTier(itemStack)) ? Items.PAPER : super.getPolymerItem(itemStack, context);
-	}
-
-	@Override
-	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-		int tier = JukeboxUpgrades.getTier(stack);
-		return JukeboxModels.hasModel(tier) ? JukeboxModels.itemModel(tier) : super.getPolymerItemModel(stack, context, lookup);
 	}
 
 	@Override

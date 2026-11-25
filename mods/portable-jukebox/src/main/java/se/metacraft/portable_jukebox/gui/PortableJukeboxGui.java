@@ -221,7 +221,7 @@ public class PortableJukeboxGui extends LayeredGui {
 						Component.translatable("portable_jukebox.gui.restarts_song")
 				)).build(),
 				() -> configure(c -> c.withPitch(PortableJukeboxConfiguration.DEFAULT.pitch())));
-		configurationLayer.setSlot(VOLUME_X + 1, icon(Items.BELL, Component.translatable("portable_jukebox.gui.volume", PortableJukeboxConfiguration.formatVolume(config.volume())))
+		configurationLayer.setSlot(VOLUME_X + 1, icon(Items.BELL, volumeName(config.volume()))
 				.set(DataComponents.LORE, lore(
 						Component.translatable("portable_jukebox.gui.volume.range", PortableJukeboxConfiguration.hearingRange(config.volume())),
 						Component.translatable("portable_jukebox.gui.restarts_song")
@@ -230,8 +230,24 @@ public class PortableJukeboxGui extends LayeredGui {
 
 		configurationLayer.setSlot(PITCH_X, button(false, "portable_jukebox.gui.pitch.down"), () -> configure(PortableJukeboxConfiguration::pitchDown));
 		configurationLayer.setSlot(PITCH_X + 2, button(true, "portable_jukebox.gui.pitch.up"), () -> configure(PortableJukeboxConfiguration::pitchUp));
-		configurationLayer.setSlot(VOLUME_X, button(false, "portable_jukebox.gui.volume.down"), () -> configure(PortableJukeboxConfiguration::volumeDown));
-		configurationLayer.setSlot(VOLUME_X + 2, button(true, "portable_jukebox.gui.volume.up"), () -> configure(PortableJukeboxConfiguration::volumeUp));
+		// Past full loudness the volume buttons only change how far the song carries, so they say so.
+		boolean boosted = PortableJukeboxConfiguration.isRangeBoosted(config.volume());
+		boolean fullyLoud = config.volume() >= 1.0f;
+		configurationLayer.setSlot(VOLUME_X, button(false, boosted ? "portable_jukebox.gui.range.down" : "portable_jukebox.gui.volume.down"), () -> configure(PortableJukeboxConfiguration::volumeDown));
+		configurationLayer.setSlot(VOLUME_X + 2, button(true, fullyLoud ? "portable_jukebox.gui.range.up" : "portable_jukebox.gui.volume.up"), () -> configure(PortableJukeboxConfiguration::volumeUp));
+	}
+
+	/**
+	 * "Volume: 70%", or above full loudness, where turning it up only adds range, "Volume: 100% + 3x range".
+	 * The name, not just the lore, so the change shows when the button is clicked.
+	 */
+	private static Component volumeName(float volume) {
+		var loudness = PortableJukeboxConfiguration.formatVolume(volume);
+		if (!PortableJukeboxConfiguration.isRangeBoosted(volume)) {
+			return Component.translatable("portable_jukebox.gui.volume", loudness);
+		}
+		return Component.translatable("portable_jukebox.gui.volume.boosted", loudness, PortableJukeboxConfiguration.formatRangeBoost(volume))
+				.withStyle(ChatFormatting.GOLD);
 	}
 
 	/**
@@ -267,9 +283,6 @@ public class PortableJukeboxGui extends LayeredGui {
 		var lines = new ArrayList<Component>();
 		if (unlockedSlots > 0) {
 			lines.add(Component.translatable("portable_jukebox.gui.tier.storage", unlockedSlots).withStyle(ChatFormatting.GRAY));
-		}
-		if (tier < JukeboxUpgrades.MAX_TIER) {
-			lines.add(Component.translatable("portable_jukebox.gui.tier.next", tier + 1).withStyle(ChatFormatting.DARK_GRAY));
 		}
 		return icon(Items.DISC_FRAGMENT_5, Component.translatable("portable_jukebox.gui.tier", tier, JukeboxUpgrades.MAX_TIER))
 				.set(DataComponents.LORE, new ItemLore(lines))

@@ -8,8 +8,7 @@ import se.metacraft.portable_jukebox.item.components.Components;
 
 /**
  * A portable jukebox's upgrade tier and its disc storage. Tier 1 unlocks 9 storage slots, tier 2
- * 27 more (36 in all), and tier 3 the pitch and volume controls and Shuffle. Tiers go on in order,
- * one at a time, by crafting the jukebox with the next upgrade ({@link JukeboxUpgradeRecipe}).
+ * 27 more (36 in all), and tier 3 the pitch and volume controls and Shuffle.
  */
 public final class JukeboxUpgrades {
 

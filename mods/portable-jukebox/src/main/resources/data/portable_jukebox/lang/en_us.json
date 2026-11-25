@@ -6,12 +6,9 @@
 	"item.portable_jukebox.jukebox_upgrade_tier_3": "Jukebox Upgrade (Tier 3)",
 	"item.portable_jukebox.jukebox_upgrade.tooltip.slots": "Unlocks %s disc storage slots",
 	"item.portable_jukebox.jukebox_upgrade.tooltip.configuration": "Unlocks pitch and volume controls",
-	"item.portable_jukebox.jukebox_upgrade.tooltip.how_first": "Craft together with a Portable Jukebox",
-	"item.portable_jukebox.jukebox_upgrade.tooltip.how": "Craft together with a Tier %s Portable Jukebox",
 	"portable_jukebox.tooltip.tier": "Upgrade tier %s/%s",
 	"portable_jukebox.tooltip.stored": "%s stored discs",
 	"portable_jukebox.gui.tier": "Upgrade tier %s/%s",
-	"portable_jukebox.gui.tier.next": "Craft with a Tier %s upgrade to upgrade",
 	"portable_jukebox.gui.pitch": "Pitch: %s",
 	"portable_jukebox.gui.pitch.description": "Higher pitch also plays faster",
 	"portable_jukebox.gui.pitch.down": "Lower pitch",
@@ -28,5 +25,8 @@
 	"portable_jukebox.gui.shuffle.off": "Shuffle is off",
 	"item.portable_jukebox.jukebox_upgrade.tooltip.more_slots": "Unlocks %s more disc storage slots",
 	"portable_jukebox.gui.tier.storage": "Disc storage: %s slots",
-	"portable_jukebox.gui.restarts_song": "Changing it while a song plays restarts the song"
+	"portable_jukebox.gui.restarts_song": "Changing it while a song plays restarts the song",
+	"portable_jukebox.gui.volume.boosted": "Volume: %s + %s range",
+	"portable_jukebox.gui.range.down": "Lower range",
+	"portable_jukebox.gui.range.up": "Raise range"
 }

@@ -17,8 +17,5 @@ fabricApi {
 
 dependencies {
 	implementation("maven.modrinth:lithium:$lithium_version-fabric")
-	// The upgraded jukeboxes' models: served in the resource pack, shown on placed blocks by a display entity.
-	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
-	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	compileOnly("maven.modrinth:ledger:$ledger_version")
 }

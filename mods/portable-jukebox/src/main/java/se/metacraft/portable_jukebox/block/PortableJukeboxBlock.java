@@ -1,13 +1,6 @@
 package se.metacraft.portable_jukebox.block;
 
 import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
-import eu.pb4.polymer.virtualentity.api.BlockWithElementHolder;
-import eu.pb4.polymer.virtualentity.api.ElementHolder;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.IntegerProperty;
-import se.metacraft.portable_jukebox.upgrade.JukeboxModels;
-import se.metacraft.portable_jukebox.upgrade.JukeboxUpgrades;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -39,58 +32,10 @@ import se.metacraft.portable_jukebox.mixin.SkullBlockAccessor;
 
 import java.util.List;
 
-public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHeadBlock, BlockWithElementHolder {
-
-	/**
-	 * The placed jukebox's upgrade tier, taken from the item when placed (a placed jukebox can't be
-	 * upgraded). Tier 0 is the jukebox head; from tier 1 the tier's model is shown by a display entity
-	 * over an invisible barrier, which gives the client a full block to collide with.
-	 */
-	public static final IntegerProperty TIER = IntegerProperty.create("tier", 0, JukeboxUpgrades.MAX_TIER);
+public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHeadBlock {
 
 	public PortableJukeboxBlock(Properties settings) {
 		super(settings);
-		this.registerDefaultState(this.stateDefinition.any().setValue(TIER, 0));
-	}
-
-	@Override
-	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		super.createBlockStateDefinition(builder);
-		builder.add(TIER);
-	}
-
-	@Override
-	public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-		var state = super.getStateForPlacement(context);
-		return state == null ? null : state.setValue(TIER, JukeboxUpgrades.getTier(context.getItemInHand()));
-	}
-
-	private static boolean hasModel(BlockState state) {
-		return JukeboxModels.hasModel(state.getValue(TIER));
-	}
-
-	@Override
-	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
-		return hasModel(state) ? net.minecraft.world.level.block.Blocks.BARRIER.defaultBlockState() : PolymerHeadBlock.super.getPolymerBlockState(state, context);
-	}
-
-	/** Breaking shows jukebox particles and sounds, not the barrier's. */
-	@Override
-	public BlockState getPolymerBreakEventBlockState(BlockState state, PacketContext context) {
-		return hasModel(state) ? net.minecraft.world.level.block.Blocks.JUKEBOX.defaultBlockState() : PolymerHeadBlock.super.getPolymerBreakEventBlockState(state, context);
-	}
-
-	/** Only the head (tier 0) needs its skin sent. */
-	@Override
-	public void onPolymerBlockSend(BlockState state, BlockPos.MutableBlockPos pos, ServerPlayer player) {
-		if (!hasModel(state)) {
-			PolymerHeadBlock.super.onPolymerBlockSend(state, pos, player);
-		}
-	}
-
-	@Override
-	public @Nullable ElementHolder createElementHolder(ServerLevel world, BlockPos pos, BlockState initialBlockState) {
-		return hasModel(initialBlockState) ? JukeboxModels.blockHolder(initialBlockState.getValue(TIER)) : null;
 	}
 
 	@Override
@@ -101,7 +46,7 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHead
 
 	@Override
 	protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-		return hasModel(state) ? Shapes.block() : SkullBlockAccessor.getShape();
+		return SkullBlockAccessor.getShape();
 	}
 
 	@Override

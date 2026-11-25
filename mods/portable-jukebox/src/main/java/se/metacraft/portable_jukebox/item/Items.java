@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
-import se.metacraft.portable_jukebox.upgrade.JukeboxUpgradeItem;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
 
 public class Items {

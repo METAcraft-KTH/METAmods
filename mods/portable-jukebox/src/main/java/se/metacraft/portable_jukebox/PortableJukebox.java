@@ -1,6 +1,5 @@
 package se.metacraft.portable_jukebox;
 
-import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import se.metacraft.portable_jukebox.compat.CompatInit;
@@ -9,7 +8,6 @@ import org.apache.logging.log4j.Logger;
 import se.metacraft.portable_jukebox.block.Blocks;
 import se.metacraft.portable_jukebox.entity.Entities;
 import se.metacraft.portable_jukebox.item.Items;
-import se.metacraft.portable_jukebox.upgrade.JukeboxUpgradeRecipe;
 
 public class PortableJukebox implements ModInitializer {
 
@@ -20,12 +18,9 @@ public class PortableJukebox implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		Items.init();
-		JukeboxUpgradeRecipe.init();
 		Blocks.init();
 		Entities.init();
 		CompatInit.init();
-		PolymerResourcePackUtils.addModAssets("portable-jukebox");
-		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String id) {

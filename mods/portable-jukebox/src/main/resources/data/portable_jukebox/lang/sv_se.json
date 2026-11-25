@@ -6,12 +6,9 @@
 	"item.portable_jukebox.jukebox_upgrade_tier_3": "Jukeboxuppgradering (Nivå 3)",
 	"item.portable_jukebox.jukebox_upgrade.tooltip.slots": "Låser upp %s platser för skivförvaring",
 	"item.portable_jukebox.jukebox_upgrade.tooltip.configuration": "Låser upp tonhöjd och volym",
-	"item.portable_jukebox.jukebox_upgrade.tooltip.how_first": "Tillverka tillsammans med en Bärbar Jukebox",
-	"item.portable_jukebox.jukebox_upgrade.tooltip.how": "Tillverka tillsammans med en Bärbar Jukebox på nivå %s",
 	"portable_jukebox.tooltip.tier": "Uppgraderingsnivå %s/%s",
 	"portable_jukebox.tooltip.stored": "%s förvarade skivor",
 	"portable_jukebox.gui.tier": "Uppgraderingsnivå %s/%s",
-	"portable_jukebox.gui.tier.next": "Tillverka med en nivå %s-uppgradering för att uppgradera",
 	"portable_jukebox.gui.pitch": "Tonhöjd: %s",
 	"portable_jukebox.gui.pitch.description": "Högre tonhöjd spelar också snabbare",
 	"portable_jukebox.gui.pitch.down": "Sänk tonhöjd",
@@ -28,5 +25,8 @@
 	"portable_jukebox.gui.shuffle.off": "Blanda är av",
 	"item.portable_jukebox.jukebox_upgrade.tooltip.more_slots": "Låser upp %s fler platser för skivförvaring",
 	"portable_jukebox.gui.tier.storage": "Skivförvaring: %s platser",
-	"portable_jukebox.gui.restarts_song": "Ändras det medan en låt spelas börjar låten om"
+	"portable_jukebox.gui.restarts_song": "Ändras det medan en låt spelas börjar låten om",
+	"portable_jukebox.gui.volume.boosted": "Volym: %s + %s räckvidd",
+	"portable_jukebox.gui.range.down": "Sänk räckvidd",
+	"portable_jukebox.gui.range.up": "Höj räckvidd"
 }
