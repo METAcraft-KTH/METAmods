@@ -118,9 +118,10 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
 		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.pitch()) {
 			boolean finished = song.isPresent() && !isRemoved() && attachment != null;
-			// Shuffle replaces this sound source with the next song's, discarding this one.
-			if (!(finished && JukeboxShuffle.playNext(jukebox, attachment, getRandom()))) {
-				discard();
+			discard();
+			// With Shuffle on, start the next song in a new sound source.
+			if (finished) {
+				JukeboxShuffle.playNext(jukebox, attachment, getRandom());
 			}
 			return;
 		}

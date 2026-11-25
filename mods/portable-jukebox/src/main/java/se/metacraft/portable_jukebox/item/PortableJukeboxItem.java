@@ -3,7 +3,9 @@ package se.metacraft.portable_jukebox.item;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
@@ -17,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.level.Level;
 import se.metacraft.lib.util.EntityRef;
+import se.metacraft.portable_jukebox.PortableJukebox;
 import se.metacraft.portable_jukebox.block.Blocks;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.EntityRefHelper;
@@ -32,6 +35,19 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 
 	public PortableJukeboxItem(net.minecraft.world.item.Item.Properties settings) {
 		super(Blocks.PORTABLE_JUKEBOX, settings);
+	}
+
+	/**
+	 * The jukebox model for a tier. The Blockbench models are numbered from 1, so the base jukebox
+	 * (tier 0) uses {@code portable_jukebox_tier_1}.
+	 */
+	public static Identifier model(int tier) {
+		return PortableJukebox.getID("portable_jukebox_tier_" + (Math.clamp(tier, 0, JukeboxUpgrades.MAX_TIER) + 1));
+	}
+
+	@Override
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return model(JukeboxUpgrades.getTier(stack));
 	}
 
 	public static void play(ItemStack stack, EntityRef entity) {
