@@ -89,7 +89,7 @@ public final class Patches {
 	 * datagen calls the textures and models it writes for it.
 	 *
 	 * @param byDefault is this the catalogue's own {@code <id>.png}?
-	 * @param source    the art this one is scaled down from; null when it is a PNG of its own
+	 * @param source	the art this one is scaled down from; null when it is a PNG of its own
 	 */
 	public record Art(String id, int width, int height, boolean byDefault, @Nullable Art source) {
 		/** A PNG on the classpath: the catalogue's own art, or a variant drawn beside it. */
@@ -175,16 +175,16 @@ public final class Patches {
 	 * choice, so its library has to hold one entry per fit):
 	 *
 	 * <ul>
-	 *   <li>{@link #OVER}: the artist's own size, hanging over the cell if it is bigger. Every
-	 *	   ordinary cell — a patch lapping onto its neighbours is the point of them — and the seat,
-	 *	   whose art is drawn to the seat's own size rules already. A patch whose own size is over
-	 *	   {@link #OVER_MAX} is the exception: art drawn to fill the big back cell would swallow an
-	 *	   ordinary cell's neighbours whole, so there it shows the largest art that fits
-	 *	   {@link #OVER_MAX} instead (a seat patch, again, is drawn to the seat's rules and is left
-	 *	   alone).
-	 *   <li>{@link #FILLED}: a cell as big as art is allowed to get ({@link #MAX_ART} square — the
-	 *	   big back cell), which is meant to be filled rather than to have a smaller patch floating
-	 *	   in the middle of it.
+	 *	<li>{@link #OVER}: the artist's own size, hanging over the cell if it is bigger. Every
+	 *		ordinary cell — a patch lapping onto its neighbours is the point of them — and the seat,
+	 *		whose art is drawn to the seat's own size rules already. A patch whose own size is over
+	 *		{@link #OVER_MAX} is the exception: art drawn to fill the big back cell would swallow an
+	 *		ordinary cell's neighbours whole, so there it shows the largest art that fits
+	 *		{@link #OVER_MAX} instead (a seat patch, again, is drawn to the seat's rules and is left
+	 *		alone).
+	 *	<li>{@link #FILLED}: a cell as big as art is allowed to get ({@link #MAX_ART} square — the
+	 *		big back cell), which is meant to be filled rather than to have a smaller patch floating
+	 *		in the middle of it.
 	 * </ul>
 	 *
 	 * <p>The ordinals are the index the instant channel's library is keyed by, and
@@ -202,7 +202,7 @@ public final class Patches {
 
 	/**
 	 * @param id	 also the art file name and the item id suffix ({@code ovvar:patch_<id>})
-	 * @param width  art width in pixels ({@link Spot#ART_PX} for a cell-sized patch; a seat patch is always 2 cells wide)
+	 * @param width	 art width in pixels ({@link Spot#ART_PX} for a cell-sized patch; a seat patch is always 2 cells wide)
 	 * @param height art height in pixels
 	 * @param artist who drew the art, credited in the tooltip; null when nobody is named
 	 */
@@ -268,31 +268,31 @@ public final class Patches {
 
 	private static final List<Patch> ALL = List.of(
 			new Patch("itk", "ITK", 12, 12),
-			Patch.seat("rivals", "METAcraft Rivals '26"),   // across the seat
+			Patch.seat("rivals", "METAcraft Rivals '26"), // across the seat
 			new Patch("it", "IT", 12, 12).by("Cactooz"),
 			new Patch("data", "Data", 12, 12),
 			// Hugo/Cactooz's set, and Mackan's maid dress. The order here is the catalogue's (creative
 			// tab, stash, /ovvar give all); the dye colour's design codes are derived from it ({@link #byCode}).
 			new Patch("spiken", "Spiken", 12, 12).by("Cactooz"),
-			new Patch("slaggan", "Släggan", 12, 12).by("Cactooz"),   // the file is slaggan.png: a resource id is [a-z0-9_.-]
-			new Patch("ticket_to_my_heart", "Ticket to my heart", 12, 12).by("Måns"),   // his 12×12 redraw replaced Cactooz's 9×6
+			new Patch("slaggan", "Släggan", 12, 12).by("Cactooz"), // the file is slaggan.png: a resource id is [a-z0-9_.-]
+			new Patch("ticket_to_my_heart", "Ticket to my heart", 12, 12).by("Måns"), // his 12×12 redraw replaced Cactooz's 9×6
 			new Patch("maid", "Maid dress", 12, 12).by("Mackan"),
 			// Taller than the seat's own row: a texel of the rails hangs onto the cloth below it.
 			Patch.seat("pung", "Pung", 16, 10),
 			// The set Ainrave drew. The display names are placeholders; the ids are not, since a stored
 			// design names its patches by id.
 			new Patch("in", "IN", 12, 12).by("Ainrave"),
-			new Patch("in_gold", "IN (gold)", 16, 16).by("Ainrave"),   // drawn only at 16x16: the 12 is scaled from it
+			new Patch("in_gold", "IN (gold)", 16, 16).by("Ainrave"), // drawn only at 16x16: the 12 is scaled from it
 			new Patch("nyckeln0x0", "Nyckeln 0x0", 12, 12).by("Ainrave"),
 			new Patch("nyckeln0x1", "Nyckeln 0x1", 12, 12).by("Ainrave"),
 			new Patch("nyckeln0x2", "Nyckeln 0x2", 12, 12).by("Ainrave"),
-			new Patch("kommn", "KomMN", 12, 8).by("Ainrave"),   // drawn 12x8 on a 12x12 canvas; also 16x10
+			new Patch("kommn", "KomMN", 12, 8).by("Ainrave"), // drawn 12x8 on a 12x12 canvas; also 16x10
 			// Måns's set, each drawn at 12 and 16 so nothing is generated for them; Spiken, Släggan and the
 			// ticket got their 16 in the same batch. Display names are placeholders until somebody says
 			// otherwise; the ids are not.
 			new Patch("jgs", "JGS", 12, 12),
 			new Patch("tmeit", "TMEIT", 12, 12),
-			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12),   // a resource id is [a-z0-9_.-], so the hyphen stays
+			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12), // a resource id is [a-z0-9_.-], so the hyphen stays
 			// Ainrave's Data pack (ain-data-patch-pack), drawn at 12.
 			new Patch("batata", "Batata", 12, 12).by("Ainrave"),
 			new Patch("batato", "Batato", 12, 12).by("Ainrave"),
@@ -388,7 +388,7 @@ public final class Patches {
 			for (int w = 2; w <= MAX_ART; w += 2) {
 				for (int h = 2; h <= MAX_ART; h += 2) {
 					Art art = new Art(patch.id(), w, h, false);
-					if (w == patch.width() && h == patch.height()) continue;   // that is the default's own name
+					if (w == patch.width() && h == patch.height()) continue; // that is the default's own name
 					if (Patches.class.getResource(art.resource()) == null) continue;
 					validate(patch, art);
 					found.add(art);
