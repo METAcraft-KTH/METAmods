@@ -1,6 +1,8 @@
 package se.metacraft.portable_jukebox.item;
 
+import net.minecraft.util.Unit;
 import se.metacraft.lib.CreativeTabNamespaces;
+import se.metacraft.portable_jukebox.PortableJukeboxConfig;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.PortableJukebox;
 
@@ -16,10 +18,33 @@ public class Items {
 
 	public static final Item PORTABLE_JUKEBOX = register(
 			"portable_jukebox", PortableJukeboxItem::new,
-			new Item.Properties().stacksTo(1).useBlockDescriptionPrefix().component(
-				Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY
+			applyComponentsFromConfig(
+				new Item.Properties().stacksTo(1).useBlockDescriptionPrefix().component(
+					Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY
+				)
 			)
 	);
+
+	private static Item.Properties applyComponentsFromConfig(Item.Properties properties) {
+		var config = PortableJukeboxConfig.getConfig().defaultUpgrades();
+		if (config.pitch()) {
+			properties.component(Components.PITCH_BUTTONS, Unit.INSTANCE);
+		}
+		if (config.volume()) {
+			properties.component(Components.VOLUME_BUTTONS, Unit.INSTANCE);
+		}
+		if (config.playlist()) {
+			properties.component(Components.PLAYLIST_TOGGLE, Unit.INSTANCE);
+		}
+		if (config.shuffle()) {
+			properties.component(Components.SHUFFLE_TOGGLE, Unit.INSTANCE);
+		}
+		int storage = config.storage();
+		if (storage > 0) {
+			properties.component(Components.STORAGE_SIZE, storage);
+		}
+		return properties;
+	}
 
 	public static void init() {
 		Components.init();

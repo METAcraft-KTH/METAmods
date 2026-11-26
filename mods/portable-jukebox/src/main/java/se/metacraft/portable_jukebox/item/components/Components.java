@@ -29,7 +29,7 @@ public class Components {
 	);
 
 	public static final DataComponentType<Integer> STORAGE_SIZE = register(
-		"storage_size", component -> component.persistent(Codec.INT)
+		"storage_size", component -> component.persistent(Codec.intRange(0, ItemContainerContents.MAX_SIZE))
 	);
 
 	public static final DataComponentType<Unit> SHUFFLE_TOGGLE = register(

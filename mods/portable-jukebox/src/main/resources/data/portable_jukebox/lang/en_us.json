@@ -24,5 +24,11 @@
 	"portable_jukebox.gui.restarts_song": "Changing it while a song plays restarts the song",
 	"portable_jukebox.gui.volume.boosted": "Volume: %s + %s range",
 	"portable_jukebox.gui.range.down": "Lower range",
-	"portable_jukebox.gui.range.up": "Raise range"
+	"portable_jukebox.gui.range.up": "Raise range",
+	"config.portable_jukebox.default_upgrades": "Upgrades available on the default unmodified portable jukebox",
+	"config.portable_jukebox.default_upgrades.storage": "How many storage slots available",
+	"config.portable_jukebox.default_upgrades.pitch": "If the pitch changing buttons are present",
+	"config.portable_jukebox.default_upgrades.volume": "If the volume changing buttons are present",
+	"config.portable_jukebox.default_upgrades.shuffle": "If the shuffle button is present",
+	"config.portable_jukebox.default_upgrades.playlist": "If the playlist button is present"
 }

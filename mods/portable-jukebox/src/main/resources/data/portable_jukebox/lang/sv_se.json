@@ -24,5 +24,11 @@
 	"portable_jukebox.gui.restarts_song": "Ändras det medan en låt spelas börjar låten om",
 	"portable_jukebox.gui.volume.boosted": "Volym: %s + %s räckvidd",
 	"portable_jukebox.gui.range.down": "Sänk räckvidd",
-	"portable_jukebox.gui.range.up": "Höj räckvidd"
+	"portable_jukebox.gui.range.up": "Höj räckvidd",
+	"config.portable_jukebox.default_upgrades": "Upgraderingar som är inbyggda i den vanliga bärbara musikspelaren",
+	"config.portable_jukebox.default_upgrades.storage": "Hur många lagringsplatser som finns",
+	"config.portable_jukebox.default_upgrades.pitch": "Om pitchjusteringsknapparna finns",
+	"config.portable_jukebox.default_upgrades.volume": "Om volymskjusteringsknapparna finns",
+	"config.portable_jukebox.default_upgrades.shuffle": "Om slumpknappen finns",
+	"config.portable_jukebox.default_upgrades.playlist": "Om spellistknappen finns"
 }
