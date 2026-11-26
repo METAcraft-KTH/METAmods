@@ -4,6 +4,7 @@ import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import se.metacraft.lib.METAcraftLib;
+import se.metacraft.qol.dispenser_horn.DispenserHorn;
 import se.metacraft.qol.silence_mobs.SilenceMobs;
 import se.metacraft.qol.void_anchor.VoidAnchor;
 import org.apache.logging.log4j.LogManager;
@@ -20,6 +21,7 @@ public class Qol implements ModInitializer {
 	public void onInitialize() {
 		VoidAnchor.init();
 		SilenceMobs.init();
+		DispenserHorn.init();
 
 		PolymerResourcePackUtils.addModAssets(MODID);
 		PolymerResourcePackUtils.markAsRequired();
