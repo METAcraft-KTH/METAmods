@@ -22,7 +22,7 @@ public class PortableJukebox implements ModInitializer {
 		Blocks.init();
 		Entities.init();
 		CompatInit.init();
-		PolymerResourcePackUtils.addModAssets(NAMESPACE);
+		PolymerResourcePackUtils.addModAssets("portable-jukebox");
 		PolymerResourcePackUtils.markAsRequired();
 	}
 

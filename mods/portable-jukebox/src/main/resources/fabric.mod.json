@@ -39,6 +39,7 @@
 		"polymer-core": "*",
 		"polymer-virtual-entity": "*",
 		"polymer-resource-pack": "*",
+		"metacraft-core": "*",
 		"sgui": "*"
 	}
 }

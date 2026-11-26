@@ -36,11 +36,11 @@ import se.metacraft.portable_jukebox.PortableJukebox;
 import se.metacraft.portable_jukebox.data.RemovalAware;
 import se.metacraft.portable_jukebox.item.Items;
 import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.components.Autoplay;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxConfiguration;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxEntityEntry;
 import se.metacraft.portable_jukebox.ItemWithInventoryHelper;
-import se.metacraft.portable_jukebox.upgrade.JukeboxShuffle;
 
 import java.util.*;
 
@@ -121,7 +121,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 			discard();
 			// With Shuffle on, start the next song in a new sound source.
 			if (finished) {
-				JukeboxShuffle.playNext(jukebox, attachment, getRandom());
+				Autoplay.playNext(jukebox, attachment, getRandom());
 			}
 			return;
 		}

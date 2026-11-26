@@ -10,6 +10,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
@@ -18,15 +19,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.component.TooltipDisplay;
+import se.metacraft.core.util.helper.PlayerInventoryHelper;
 import se.metacraft.lib.util.EntityRef;
+import se.metacraft.lib.util.TaskScheduler;
 import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.components.Autoplay;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxConfiguration;
-import se.metacraft.portable_jukebox.upgrade.JukeboxShuffle;
-import se.metacraft.portable_jukebox.upgrade.JukeboxUpgrades;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.UnaryOperator;
 
 /**
@@ -44,7 +45,6 @@ public class PortableJukeboxGui extends LayeredGui {
 
 	private static final int WIDTH = 9;
 
-	private static final int TIER_INFO_X = 0;
 	private static final int DISC_SLOT_X = 3;
 	private static final int SHUFFLE_X = 6;
 	private static final int PLAY_X = 7;
@@ -59,7 +59,6 @@ public class PortableJukeboxGui extends LayeredGui {
 	private final PortableJukeboxStorageInventory storage;
 	private final ItemStack jukebox;
 	private final EntityRef toPlayFrom;
-	private final int tier;
 	private final int unlockedSlots;
 	private final int storageStart;
 	private final Layer topLayer = new Layer(1, WIDTH);
@@ -67,22 +66,32 @@ public class PortableJukeboxGui extends LayeredGui {
 	/** Ticks left until a playing song restarts with a changed pitch or volume; -1 when none is due. */
 	private int restartIn = -1;
 
+	private OptionalInt currentSlot;
+
 	public static PortableJukeboxGui create(ServerPlayer player, ItemStack portableJukebox, EntityRef toPlayFrom) {
 		return new PortableJukeboxGui(player, portableJukebox, toPlayFrom, toPlayFrom::onUpdate);
+	}
+
+	private boolean updateCurrentSlot() {
+		var s = jukebox.get(Components.CURRENT_SLOT);
+		var newCurrentSlot = s != null ? OptionalInt.of(s) : OptionalInt.empty();
+		if (newCurrentSlot.equals(currentSlot)) return false;
+		this.currentSlot = newCurrentSlot;
+		return true;
 	}
 
 	public PortableJukeboxGui(
 			ServerPlayer player, ItemStack portableJukebox, EntityRef toPlayFrom, Runnable onUpdate
 	) {
-		super(menuType(JukeboxUpgrades.getTier(portableJukebox)), player, false);
+		super(menuType(portableJukebox), player, false);
 
 		this.jukebox = portableJukebox;
 		this.toPlayFrom = toPlayFrom;
-		this.tier = JukeboxUpgrades.getTier(portableJukebox);
-		this.unlockedSlots = JukeboxUpgrades.unlockedSlots(tier);
+		this.unlockedSlots = portableJukebox.getOrDefault(Components.STORAGE_SIZE, 0);
+		updateCurrentSlot();
 		this.portableJukebox = new PortableJukeboxInventory(portableJukebox, onUpdate);
 		this.storage = new PortableJukeboxStorageInventory(portableJukebox, onUpdate);
-		boolean configurable = hasConfiguration(tier);
+		boolean configurable = hasConfiguration(portableJukebox);
 		this.storageStart = (configurable ? 2 : 1) * WIDTH;
 
 		this.setTitle(Component.translatable(
@@ -93,7 +102,6 @@ public class PortableJukeboxGui extends LayeredGui {
 				.set(DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(true, ReferenceSortedSets.emptySet()))
 				.build());
 
-		topLayer.setSlot(TIER_INFO_X, tierInfo());
 		topLayer.setSlot(DISC_SLOT_X, new Slot(this.portableJukebox, 0, 0, 0) {
 			@Override
 			public boolean mayPlace(ItemStack stack) {
@@ -108,22 +116,23 @@ public class PortableJukeboxGui extends LayeredGui {
 		topLayer.setSlot(
 				PLAY_X, icon(Items.WOOL.green(), Component.literal("Play")).build(),
 				() -> {
-					JukeboxShuffle.turnOff(portableJukebox);
+					Autoplay.turnOff(portableJukebox);
 					restartIn = -1;
 					PortableJukeboxItem.play(portableJukebox, toPlayFrom);
-					drawShuffle();
+					drawPlaylist();
 				}
 		);
 		topLayer.setSlot(
 				STOP_X, icon(Items.WOOL.red(), Component.literal("Stop")).build(),
 				() -> {
-					JukeboxShuffle.turnOff(portableJukebox);
+					Autoplay.turnOff(portableJukebox);
 					restartIn = -1;
 					PortableJukeboxItem.stop(portableJukebox, player.level());
-					drawShuffle();
+					jukebox.remove(Components.CURRENT_SLOT);
+					drawPlaylist();
 				}
 		);
-		drawShuffle();
+		drawPlaylist();
 		this.addLayer(topLayer, 0, 0);
 
 		if (configurable) {
@@ -132,7 +141,7 @@ public class PortableJukeboxGui extends LayeredGui {
 		}
 
 		if (unlockedSlots > 0) {
-			Layer storageLayer = new Layer(storageRows(tier), WIDTH);
+			Layer storageLayer = new Layer(storageRows(portableJukebox), WIDTH);
 			for (int i = 0; i < unlockedSlots; i++) {
 				storageLayer.setSlot(i, new Slot(storage, i, 0, 0) {
 					@Override
@@ -145,17 +154,17 @@ public class PortableJukeboxGui extends LayeredGui {
 		}
 	}
 
-	private static boolean hasConfiguration(int tier) {
-		return tier >= JukeboxUpgrades.CONFIGURATION_TIER;
+	private static boolean hasConfiguration(ItemStack jukebox) {
+		return jukebox.has(Components.PITCH_VOLUME_BUTTONS);
 	}
 
-	private static int storageRows(int tier) {
-		return (JukeboxUpgrades.unlockedSlots(tier) + WIDTH - 1) / WIDTH;
+	private static int storageRows(ItemStack jukebox) {
+		return (jukebox.getOrDefault(Components.STORAGE_SIZE, 0) + WIDTH - 1) / WIDTH;
 	}
 
 	/** Just tall enough for the tier: the top row, the controls row from tier 2, and the storage rows. */
-	private static MenuType<?> menuType(int tier) {
-		int rows = 1 + (hasConfiguration(tier) ? 1 : 0) + storageRows(tier);
+	private static MenuType<?> menuType(ItemStack jukebox) {
+		int rows = 1 + (hasConfiguration(jukebox) ? 1 : 0) + storageRows(jukebox);
 		return switch (Math.min(rows, 6)) {
 			case 1 -> MenuType.GENERIC_9x1;
 			case 2 -> MenuType.GENERIC_9x2;
@@ -166,50 +175,103 @@ public class PortableJukeboxGui extends LayeredGui {
 		};
 	}
 
-	/** Left-click on a stored disc, empty cursor: swap it into the disc slot and play it. */
 	@Override
 	public boolean onAnyClick(int index, ClickType type, ContainerInput action) {
 		int storageSlot = index - storageStart;
-		if (
-				type == ClickType.MOUSE_LEFT && action == ContainerInput.PICKUP &&
-				storageSlot >= 0 && storageSlot < unlockedSlots &&
+		if (storageSlot >= 0 && storageSlot < unlockedSlots) {
+			if (
+				action == ContainerInput.SWAP &&
 				getPlayer().containerMenu.getCarried().isEmpty()
-		) {
-			var stored = storage.getItem(storageSlot);
-			if (!stored.isEmpty()) {
-				var current = portableJukebox.getItem(0);
-				storage.setItem(storageSlot, current);
-				portableJukebox.setItem(0, stored);
-				portableJukebox.setChanged();
-				JukeboxShuffle.turnOff(jukebox);
-				restartIn = -1;
-				PortableJukeboxItem.play(jukebox, toPlayFrom);
-				drawShuffle();
-				return false;
+			) {
+				var stored = storage.getItem(storageSlot);
+				PlayerInventoryHelper.syncHandStack(getPlayer(), InteractionHand.OFF_HAND);
+				if (!stored.isEmpty()) {
+					var current = portableJukebox.getItem(0);
+					storage.setItem(storageSlot, current);
+					portableJukebox.setItem(0, stored);
+					portableJukebox.setChanged();
+					restartIn = -1;
+					PortableJukeboxItem.play(jukebox, toPlayFrom);
+					drawPlaylist();
+					return false;
+				}
+			} else {
+				TaskScheduler.scheduleImmediately(
+					getPlayer().level().getServer(),
+					() -> {
+						if (isOpen()) {
+							drawPlaylist();
+						}
+					}
+				);
 			}
 		}
 		return super.onAnyClick(index, type, action);
 	}
 
 	/** The Shuffle button, from its tier only: lit while shuffling. */
-	private void drawShuffle() {
-		if (tier < JukeboxUpgrades.SHUFFLE_TIER) return;
-		boolean on = JukeboxShuffle.isOn(jukebox);
-		topLayer.setSlot(
-				SHUFFLE_X,
+	private void drawPlaylist() {
+		var autoplay = jukebox.get(Components.AUTOPLAY);
+		int x = SHUFFLE_X;
+		if (jukebox.has(Components.SHUFFLE_TOGGLE)) {
+			topLayer.setSlot(
+				x--,
 				icon(Items.WOOL.purple(), Component.translatable("portable_jukebox.gui.shuffle"))
-						.set(DataComponents.LORE, new ItemLore(List.of(
-								Component.translatable("portable_jukebox.gui.shuffle.description").withStyle(ChatFormatting.GRAY),
-								Component.translatable(on ? "portable_jukebox.gui.shuffle.on" : "portable_jukebox.gui.shuffle.off").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY)
-						)))
-						.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, on)
-						.build(),
+					.set(
+						DataComponents.LORE, lore(
+							Component.translatable("portable_jukebox.gui.shuffle.description").withStyle(ChatFormatting.GRAY),
+							Component.translatable(autoplay == Autoplay.RANDOM ? "portable_jukebox.gui.shuffle.on" : "portable_jukebox.gui.shuffle.off").withStyle(autoplay == Autoplay.RANDOM ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY)
+						)
+					)
+					.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, autoplay == Autoplay.RANDOM)
+					.build(),
 				() -> {
 					restartIn = -1;
-					JukeboxShuffle.start(jukebox, toPlayFrom, getPlayer().getRandom());
-					drawShuffle();
+					Autoplay.RANDOM.start(jukebox, toPlayFrom, getPlayer().getRandom());
+					drawPlaylist();
 				}
-		);
+			);
+		}
+		if (jukebox.has(Components.PLAYLIST_TOGGLE)) {
+			List<Component> list = new ArrayList<>();
+			list.add(
+				Component.translatable("portable_jukebox.gui.playlist.description").withStyle(ChatFormatting.GRAY)
+			);
+			if (autoplay != null && autoplay.deterministic()) {
+				updateCurrentSlot();
+				var storage = PortableJukeboxItem.getStorageList(jukebox);
+				autoplay.pickSlot(
+					storage,
+					currentSlot,
+					getPlayer().getRandom()
+				).stream().mapToObj(
+					storage::get
+				).findAny().map(disc -> disc.get(DataComponents.JUKEBOX_PLAYABLE)).ifPresent(
+					disc -> list.add(
+						Component.translatable(
+							"portable_jukebox.gui.playlist.next_up", disc.song().value().description()
+						).withStyle(ChatFormatting.AQUA)
+					)
+				);
+			}
+			list.add(
+				Component.translatable(
+					autoplay == Autoplay.FORWARDS ? "portable_jukebox.gui.playlist.on" : "portable_jukebox.gui.playlist.off"
+				).withStyle(autoplay == Autoplay.FORWARDS ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY)
+			);
+			topLayer.setSlot(
+				x,
+				icon(Items.WOOL.orange(), Component.translatable("portable_jukebox.gui.playlist"))
+					.set(DataComponents.LORE, lore(list))
+					.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, autoplay == Autoplay.FORWARDS)
+					.build(),
+				() -> {
+					restartIn = -1;
+					Autoplay.FORWARDS.start(jukebox, toPlayFrom, getPlayer().getRandom());
+					drawPlaylist();
+				}
+			);
+		}
 	}
 
 	private void drawConfiguration() {
@@ -218,23 +280,56 @@ public class PortableJukeboxGui extends LayeredGui {
 		configurationLayer.setSlot(PITCH_X + 1, icon(Items.NOTE_BLOCK, Component.translatable("portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())))
 				.set(DataComponents.LORE, lore(
 						Component.translatable("portable_jukebox.gui.pitch.description"),
-						Component.translatable("portable_jukebox.gui.restarts_song")
+						Component.translatable("portable_jukebox.gui.restarts_song"),
+						Component.translatable("portable_jukebox.gui.reset").withStyle(ChatFormatting.DARK_GRAY)
 				)).build(),
 				() -> configure(c -> c.withPitch(PortableJukeboxConfiguration.DEFAULT.pitch())));
 		configurationLayer.setSlot(VOLUME_X + 1, icon(Items.BELL, volumeName(config.volume()))
 				.set(DataComponents.LORE, lore(
 						Component.translatable("portable_jukebox.gui.volume.range", PortableJukeboxConfiguration.hearingRange(config.volume())),
-						Component.translatable("portable_jukebox.gui.restarts_song")
+						Component.translatable("portable_jukebox.gui.restarts_song"),
+						Component.translatable("portable_jukebox.gui.reset").withStyle(ChatFormatting.DARK_GRAY)
 				)).build(),
 				() -> configure(c -> c.withVolume(PortableJukeboxConfiguration.DEFAULT.volume())));
 
-		configurationLayer.setSlot(PITCH_X, button(false, "portable_jukebox.gui.pitch.down"), () -> configure(PortableJukeboxConfiguration::pitchDown));
-		configurationLayer.setSlot(PITCH_X + 2, button(true, "portable_jukebox.gui.pitch.up"), () -> configure(PortableJukeboxConfiguration::pitchUp));
+		configurationLayer.setSlot(
+			PITCH_X, button(
+				false, "portable_jukebox.gui.pitch.down",
+				Component.translatable(
+					"portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())
+				)
+			),
+			() -> configure(PortableJukeboxConfiguration::pitchDown)
+		);
+		configurationLayer.setSlot(
+			PITCH_X + 2,
+			button(
+				true, "portable_jukebox.gui.pitch.up",
+				Component.translatable(
+					"portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())
+				)
+			),
+			() -> configure(PortableJukeboxConfiguration::pitchUp)
+		);
 		// Past full loudness the volume buttons only change how far the song carries, so they say so.
 		boolean boosted = PortableJukeboxConfiguration.isRangeBoosted(config.volume());
 		boolean fullyLoud = config.volume() >= 1.0f;
-		configurationLayer.setSlot(VOLUME_X, button(false, boosted ? "portable_jukebox.gui.range.down" : "portable_jukebox.gui.volume.down"), () -> configure(PortableJukeboxConfiguration::volumeDown));
-		configurationLayer.setSlot(VOLUME_X + 2, button(true, fullyLoud ? "portable_jukebox.gui.range.up" : "portable_jukebox.gui.volume.up"), () -> configure(PortableJukeboxConfiguration::volumeUp));
+		configurationLayer.setSlot(
+			VOLUME_X,
+			button(
+				false, boosted ? "portable_jukebox.gui.range.down" : "portable_jukebox.gui.volume.down",
+				volumeName(config.volume())
+			),
+			() -> configure(PortableJukeboxConfiguration::volumeDown)
+		);
+		configurationLayer.setSlot(
+			VOLUME_X + 2,
+			button(
+				true, fullyLoud ? "portable_jukebox.gui.range.up" : "portable_jukebox.gui.volume.up",
+				volumeName(config.volume())
+			),
+			() -> configure(PortableJukeboxConfiguration::volumeUp)
+		);
 	}
 
 	/**
@@ -255,7 +350,7 @@ public class PortableJukeboxGui extends LayeredGui {
 	 * has no way to), so it restarts with the new one, {@link #RESTART_DELAY} ticks after the last click.
 	 */
 	private void configure(UnaryOperator<PortableJukeboxConfiguration> change) {
-		if (!hasConfiguration(tier)) return;
+		if (!hasConfiguration(jukebox)) return;
 		var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
 		var changed = change.apply(config);
 		if (changed.equals(config)) return;
@@ -279,25 +374,27 @@ public class PortableJukeboxGui extends LayeredGui {
 		}
 	}
 
-	private ItemStack tierInfo() {
-		var lines = new ArrayList<Component>();
-		if (unlockedSlots > 0) {
-			lines.add(Component.translatable("portable_jukebox.gui.tier.storage", unlockedSlots).withStyle(ChatFormatting.GRAY));
-		}
-		return icon(Items.DISC_FRAGMENT_5, Component.translatable("portable_jukebox.gui.tier", tier, JukeboxUpgrades.MAX_TIER))
-				.set(DataComponents.LORE, new ItemLore(lines))
-				.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, tier > 0)
-				.build();
-	}
-
-	private static ItemStack button(boolean up, String name) {
-		return icon(up ? Items.STAINED_GLASS_PANE.lime() : Items.STAINED_GLASS_PANE.red(), Component.translatable(name)).build();
+	private static ItemStack button(boolean up, String name, Component tooltip) {
+		return icon(
+			up ? Items.STAINED_GLASS.lime() : Items.STAINED_GLASS.red(), Component.translatable(name)
+		).set(
+			DataComponents.LORE, lore(tooltip)
+		).build();
 	}
 
 	private static ItemLore lore(Component... lines) {
+		return lore(Arrays.asList(lines));
+	}
+
+	private static ItemLore lore(Collection<Component> lines) {
 		var all = new ArrayList<Component>();
-		for (var line : lines) all.add(line.copy().withStyle(ChatFormatting.GRAY));
-		all.add(Component.translatable("portable_jukebox.gui.reset").withStyle(ChatFormatting.DARK_GRAY));
+		for (var line : lines) {
+			all.add(
+				Component.literal("").withStyle(ChatFormatting.GRAY).withStyle(
+					style -> style.withItalic(false)
+				).append(line)
+			);
+		}
 		return new ItemLore(all);
 	}
 
@@ -331,6 +428,9 @@ public class PortableJukeboxGui extends LayeredGui {
 		}
 		if (restartIn > 0 && --restartIn == 0) {
 			applyRestart();
+		}
+		if (updateCurrentSlot()) {
+			drawPlaylist();
 		}
 		super.onTick();
 	}

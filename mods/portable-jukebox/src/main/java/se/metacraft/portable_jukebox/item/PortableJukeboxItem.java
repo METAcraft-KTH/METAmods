@@ -1,9 +1,12 @@
 package se.metacraft.portable_jukebox.item;
 
+import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -14,40 +17,37 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemInstance;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.JukeboxSong;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.PortableJukebox;
 import se.metacraft.portable_jukebox.block.Blocks;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.entity.Entities;
 import se.metacraft.portable_jukebox.gui.PortableJukeboxGui;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
-import se.metacraft.portable_jukebox.upgrade.JukeboxUpgrades;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
+public class PortableJukeboxItem extends BlockItem implements PolymerItem {
 
-	public PortableJukeboxItem(net.minecraft.world.item.Item.Properties settings) {
+	public PortableJukeboxItem(Item.Properties settings) {
 		super(Blocks.PORTABLE_JUKEBOX, settings);
 	}
 
-	/**
-	 * The jukebox model for a tier. The Blockbench models are numbered from 1, so the base jukebox
-	 * (tier 0) uses {@code portable_jukebox_tier_1}.
-	 */
-	public static Identifier model(int tier) {
-		return PortableJukebox.getID("portable_jukebox_tier_" + (Math.clamp(tier, 0, JukeboxUpgrades.MAX_TIER) + 1));
+	@Override
+	public Item getPolymerItem(ItemStack itemStack, PacketContext context) {
+		return Items.BRICK;
 	}
 
 	@Override
 	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-		return model(JukeboxUpgrades.getTier(stack));
+		return stack.get(DataComponents.ITEM_MODEL);
 	}
 
 	public static void play(ItemStack stack, EntityRef entity) {
@@ -87,22 +87,41 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 		Optional.ofNullable(entity.getItem().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
 			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc.getItem());
 		});
-		for (var stored : JukeboxUpgrades.getStorage(entity.getItem())) {
-			if (!stored.isEmpty()) {
-				Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), stored);
-			}
+		for (var stored : getStorage(entity.getItem()).nonEmptyItems()) {
+			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), stored.create());
 		}
 	}
 
 	@Override
 	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-		int tier = JukeboxUpgrades.getTier(stack);
-		if (tier > 0) {
-			tooltip.add(Component.translatable("portable_jukebox.tooltip.tier", tier, JukeboxUpgrades.MAX_TIER).withStyle(ChatFormatting.GRAY));
-		}
-		long stored = JukeboxUpgrades.getStorage(stack).stream().filter(s -> !s.isEmpty()).count();
+		long stored = reStream(getStorage(stack)).count();
 		if (stored > 0) {
 			tooltip.add(Component.translatable("portable_jukebox.tooltip.stored", stored).withStyle(ChatFormatting.GRAY));
+		}
+	}
+
+	public static Stream<ItemStackTemplate> reStream(ItemContainerContents items) {
+		return StreamSupport.stream(items.nonEmptyItems().spliterator(), false);
+	}
+
+	public static ItemContainerContents getStorage(ItemStack jukebox) {
+		return jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_STORAGE, ItemContainerContents.EMPTY);
+	}
+
+	public static NonNullList<ItemStack> getStorageList(ItemStack jukebox) {
+		NonNullList<ItemStack> list = NonNullList.withSize(
+			jukebox.getOrDefault(Components.STORAGE_SIZE, 0),
+			ItemStack.EMPTY
+		);
+		getStorage(jukebox).copyInto(list);
+		return list;
+	}
+
+	public static void setStorage(ItemStack jukebox, ItemContainerContents items) {
+		if (reStream(items).findAny().isEmpty()) {
+			jukebox.remove(Components.PORTABLE_JUKEBOX_STORAGE);
+		} else {
+			jukebox.set(Components.PORTABLE_JUKEBOX_STORAGE, items);
 		}
 	}
 

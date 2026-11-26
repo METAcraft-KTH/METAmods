@@ -1,6 +1,7 @@
 package se.metacraft.portable_jukebox.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.datafixers.types.templates.TypeTemplate;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,6 +23,7 @@ public class V3818_3Mixin {
 			SequencedMap<String, Supplier<TypeTemplate>> original, Schema schema
 	) {
 		original.put("portable_jukebox:portable_jukebox", () -> References.ITEM_STACK.in(schema));
+		original.put("portable_jukebox:storage", () -> DSL.list(DSL.optionalFields("item", References.ITEM_STACK.in(schema))));
 		return original;
 	}
 
