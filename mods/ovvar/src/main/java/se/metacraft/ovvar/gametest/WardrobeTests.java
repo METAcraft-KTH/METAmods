@@ -201,7 +201,7 @@ public final class WardrobeTests {
 	public void wardrobesUpdateIsCompareAndSet(GameTestHelper helper) throws IOException {
 		MinecraftServer server = helper.getLevel().getServer();
 		Path dir = Files.createTempDirectory("ovvar-wardrobes");
-		FileBackend behind = new FileBackend(dir);   // the same files, written "from another server"
+		FileBackend behind = new FileBackend(dir); // the same files, written "from another server"
 		UUID owner = UUID.randomUUID();
 		AtomicReference<Wardrobes.Outcome> outcome = new AtomicReference<>();
 		helper.startSequence()
@@ -264,7 +264,7 @@ public final class WardrobeTests {
 						if (!b.at(CHAPTER, Spot.FRONT_TOP_LEFT).map(p -> p.patch() == ITK_PATCH).orElse(false)) helper.fail("the file's design did not win: " + b);
 						if (b.count(ITK_PATCH) != 1 || b.count(NYCKELN_PATCH) != 1 || b.version() != 5) helper.fail("stash not merged: " + b);
 						if (!source.owners().isEmpty()) helper.fail("files not marked imported: " + source.owners());
-						Wardrobes.importFrom(from, report::add);   // a second run finds nothing
+						Wardrobes.importFrom(from, report::add); // a second run finds nothing
 					} catch (IOException e) {
 						throw new GameTestAssertException(Component.literal(e.toString()), 0);
 					}
@@ -666,15 +666,15 @@ public final class WardrobeTests {
 	 * <p>So the title is walked the way the client walks it: the advances read out of the very font
 	 * JSON the pack ships, each glyph's own advance, one cursor. Then:
 	 * <ul>
-	 *   <li>every glyph is inside the container's {@value WardrobeArt#WIDTH}×{@value WardrobeArt#HEIGHT};
-	 *   <li>nothing is drawn on the action row's buttons — the one row that is all slots and no
-	 *	   picture, so anything landing there is a pale square over a button (the page counter's own
-	 *	   two columns, which the design puts in that row's spare middle, are the exception);
-	 *   <li>every glyph lands at its own declared place, bar the three that move by design: the tab
-	 *	   highlight follows the active tab along the tab row, and the stats and page rows are laid
-	 *	   out from a computed x along their own row;
-	 *   <li>the cursor comes back to where it started, which is what lets the chapter's name follow
-	 *	   as ordinary text — and is the first thing a wrong advance breaks.
+	 *	<li>every glyph is inside the container's {@value WardrobeArt#WIDTH}×{@value WardrobeArt#HEIGHT};
+	 *	<li>nothing is drawn on the action row's buttons — the one row that is all slots and no
+	 *		picture, so anything landing there is a pale square over a button (the page counter's own
+	 *		two columns, which the design puts in that row's spare middle, are the exception);
+	 *	<li>every glyph lands at its own declared place, bar the three that move by design: the tab
+	 *		highlight follows the active tab along the tab row, and the stats and page rows are laid
+	 *		out from a computed x along their own row;
+	 *	<li>the cursor comes back to where it started, which is what lets the chapter's name follow
+	 *		as ordinary text — and is the first thing a wrong advance breaks.
 	 * </ul>
 	 *
 	 * <p>Every position here is worked out by the server and sent in the title, so this also settles
@@ -750,7 +750,7 @@ public final class WardrobeTests {
 				continue;
 			}
 			WardrobeFont.Glyph glyph = byChar.get(c);
-			if (glyph == null) break;   // the chapter's name, appended last, in the ordinary font
+			if (glyph == null) break; // the chapter's name, appended last, in the ordinary font
 			checkGlyphPlace(helper, glyph, x, chapter);
 			x += glyph.advance();
 		}
@@ -1879,16 +1879,16 @@ public final class WardrobeTests {
 	 * of that path that a server-side test can see:
 	 *
 	 * <ul>
-	 *   <li>datagen copies the art into the placement texture and into the preview library without
-	 *	   touching a channel — every colour the art uses is in both, byte for byte;
-	 *   <li>the only dyeable layer of an ovve is the preview layer, whose dye is patch <em>data</em>,
-	 *	   not paint — so nothing else can be tinted by anything;
-	 *   <li>the vertex shader lights a patch layer of ours with white instead of that data colour
-	 *	   ({@code mix(Color, vec4(1.0), ovvar_patch_layer())}), which is what keeps the dye off the
-	 *	   art; and
-	 *   <li>the fragment shader modulates the sampled colour exactly once, with vanilla's own
-	 *	   {@code faceVertexColor * ColorModulator} and nothing else — so a patch texel and a cloth
-	 *	   texel on the same face of the same box come out of the same arithmetic.
+	 *	<li>datagen copies the art into the placement texture and into the preview library without
+	 *		touching a channel — every colour the art uses is in both, byte for byte;
+	 *	<li>the only dyeable layer of an ovve is the preview layer, whose dye is patch <em>data</em>,
+	 *		not paint — so nothing else can be tinted by anything;
+	 *	<li>the vertex shader lights a patch layer of ours with white instead of that data colour
+	 *		({@code mix(Color, vec4(1.0), ovvar_patch_layer())}), which is what keeps the dye off the
+	 *		art; and
+	 *	<li>the fragment shader modulates the sampled colour exactly once, with vanilla's own
+	 *		{@code faceVertexColor * ColorModulator} and nothing else — so a patch texel and a cloth
+	 *		texel on the same face of the same box come out of the same arithmetic.
 	 * </ul>
 	 *
 	 * <p>What it cannot see is the screen. If a white patch pixel and a white pixel of the ovve's own
@@ -1908,7 +1908,7 @@ public final class WardrobeTests {
 				continue;
 			}
 			for (Spot spot : Spot.values()) {
-				if (!patch.fits(spot) || spot == Spot.SEAT) continue;   // the seat is cut in half per leg
+				if (!patch.fits(spot) || spot == Spot.SEAT) continue; // the seat is cut in half per leg
 				// Against the PNG this cell shows: a patch may ship its art at several sizes.
 				List<Integer> cellWant = patchArt(Patches.artFor(patch, spot)).opaqueColours();
 				List<Integer> got = artColours(generated(spot.piece, "patch/" + spot.id() + "/" + patch.id()));
@@ -1927,7 +1927,7 @@ public final class WardrobeTests {
 				}
 			}
 			for (Piece piece : Piece.values()) {
-				if (!Looks.instant(patch)) continue;   // not in the library at all
+				if (!Looks.instant(patch)) continue; // not in the library at all
 				List<Integer> library = artColours(generated(piece, "patch/preview_" + piece.id));
 				for (int colour : want) {
 					if (!library.contains(colour)) {
@@ -1978,7 +1978,7 @@ public final class WardrobeTests {
 		List<Integer> out = new ArrayList<>();
 		for (int y = 0; y < tex.height; y++) {
 			for (int x = 0; x < tex.width; x++) {
-				if (y == tex.height / 2 - 1 && x >= tex.width - MARKER_ROW_DATA) continue;   // the marker row's data texels
+				if (y == tex.height / 2 - 1 && x >= tex.width - MARKER_ROW_DATA) continue; // the marker row's data texels
 				int p = tex.get(x, y);
 				if (Tex.a(p) == 255 && !out.contains(p)) out.add(p);
 			}
@@ -2007,7 +2007,7 @@ public final class WardrobeTests {
 		for (String line : glsl.split("\n")) {
 			String code = line.contains("//") ? line.substring(0, line.indexOf("//")) : line;
 			if (!code.contains("ovvar_handed")) continue;
-			if (code.contains("bool ovvar_handed")) continue;   // the declaration, not an assignment
+			if (code.contains("bool ovvar_handed")) continue; // the declaration, not an assignment
 			(code.contains("ovvar_handed =") ? assignments : reads).add(code.trim());
 		}
 		if (assignments.size() != 1) helper.fail("ovvar_handed is assigned " + assignments.size() + " time(s), wanted once: " + assignments);
@@ -2102,10 +2102,10 @@ public final class WardrobeTests {
 			String name = spot.name();
 			List<Integer> wanted;
 			if (spot == Spot.SEAT) wanted = List.of(Spot.LEG_BACK_TOP_R.v);
-			else if (spot == Spot.BACK_BIG) wanted = List.of(22);   // rows 22-29, clear of the collar and the belt
+			else if (spot == Spot.BACK_BIG) wanted = List.of(22); // rows 22-29, clear of the collar and the belt
 			else if (name.startsWith("SLEEVE_")) wanted = List.of(21, 25);
 			else if (name.startsWith("LEG_")) wanted = List.of(22, 26);
-			else wanted = List.of(21, 26);   // the chest and the back's top row, which the playtest left alone
+			else wanted = List.of(21, 26); // the chest and the back's top row, which the playtest left alone
 			if (!wanted.contains(spot.v)) helper.fail(spot.id() + " is on row " + spot.v + ", wanted one of " + wanted);
 			// The rows at either end of the side rows are not ours to draw on.
 			if (spot.v <= top) helper.fail(spot.id() + " starts on row " + spot.v + ", which is the collar or the waistband");
@@ -2659,11 +2659,11 @@ public final class WardrobeTests {
 	 * decision, said against the real ITK — 12×12 in the catalogue, with a 16×16 variant:
 	 *
 	 * <ul>
-	 *   <li>on the big back cell the 16×16, filling a cell that is {@link Patches#MAX_ART} square
-	 *	   rather than floating in the middle of it;
-	 *   <li>on an ordinary chest cell the catalogue's own 12×12, hanging over its neighbours, which
-	 *	   is the point of an oversize patch and exactly what it did before variants existed;
-	 *   <li>in the inventory the 16×16, drawn at 1:1 instead of a 12×12 scaled up.
+	 *	<li>on the big back cell the 16×16, filling a cell that is {@link Patches#MAX_ART} square
+	 *		rather than floating in the middle of it;
+	 *	<li>on an ordinary chest cell the catalogue's own 12×12, hanging over its neighbours, which
+	 *		is the point of an oversize patch and exactly what it did before variants existed;
+	 *	<li>in the inventory the 16×16, drawn at 1:1 instead of a 12×12 scaled up.
 	 * </ul>
 	 *
 	 * <p>And a patch that has only the one art is not touched by any of it: every fit gives it that
@@ -2824,14 +2824,14 @@ public final class WardrobeTests {
 	 * pixel art wants anyway. The rules that are easy to get wrong, on images small enough to read:
 	 *
 	 * <ul>
-	 *   <li>an even split goes to the colour that is <b>rarer</b> in the whole source, not to the one
-	 *	   that comes first — the background always has the votes, so an outline, an eye or a letter
-	 *	   stroke only survives if a tie falls its way;
-	 *   <li>every invisible pixel votes as the same nothing, whatever colour it was written in, and a
-	 *	   block that votes for nothing comes out fully clear;
-	 *   <li>and the whole thing against the real ITK, whose 12 px result is pinned here texel for
-	 *	   texel: this is the art the algorithm was chosen on, so a change to it that nobody meant
-	 *	   shows up as this test rather than as a patch that looks slightly wrong on a chest.
+	 *	<li>an even split goes to the colour that is <b>rarer</b> in the whole source, not to the one
+	 *		that comes first — the background always has the votes, so an outline, an eye or a letter
+	 *		stroke only survives if a tie falls its way;
+	 *	<li>every invisible pixel votes as the same nothing, whatever colour it was written in, and a
+	 *		block that votes for nothing comes out fully clear;
+	 *	<li>and the whole thing against the real ITK, whose 12 px result is pinned here texel for
+	 *		texel: this is the art the algorithm was chosen on, so a change to it that nobody meant
+	 *		shows up as this test rather than as a patch that looks slightly wrong on a chest.
 	 * </ul>
 	 */
 	@GameTest
@@ -2930,7 +2930,7 @@ public final class WardrobeTests {
 		for (Piece piece : Piece.values()) {
 			Tex preview = generated(piece, "patch/preview_" + piece.id);
 			for (Patches.Patch patch : Patches.all()) {
-				if (!Looks.instant(patch)) continue;   // never in the dye colour, so never in the library
+				if (!Looks.instant(patch)) continue; // never in the dye colour, so never in the library
 				int design = Patches.code(patch) - 1;
 				for (Patches.Fit fit : Patches.Fit.values()) {
 					int slot = design + fit.ordinal() * (int) slots;
@@ -3009,7 +3009,7 @@ public final class WardrobeTests {
 		FileBackend backend = new FileBackend(dir);
 		SpotPlacements a = SpotPlacements.fromList(List.of(Placement.parse("leg_back_mid_l.batata"), Placement.parse("leg_back_mid_r.batato"))).getOrThrow();
 		SpotPlacements b = SpotPlacements.fromList(List.of(Placement.parse("sleeve_back_mid_r.batatu"), Placement.parse("sleeve_back_mid_l.cerise"))).getOrThrow();
-		Files.writeString(dir.resolve(UUID.randomUUID() + ".json"), "{ not json");   // one corrupt file must not cost the rest
+		Files.writeString(dir.resolve(UUID.randomUUID() + ".json"), "{ not json"); // one corrupt file must not cost the rest
 		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.DATA, a).withVersion(1), 0);
 		backend.store(UUID.randomUUID(), Wardrobe.NONE.withDesign(Chapter.IT, b).withVersion(1), 0);
 		Combos.Combo comboA = comboOf(a, Piece.BOTTOM), comboB = comboOf(b, Piece.TOP);
@@ -3019,7 +3019,7 @@ public final class WardrobeTests {
 					boolean otherChapter;
 					int again, frack;
 					try {
-						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);   // only this test sews leg_back_mid_l/r and sleeve_back_mid_r/l; the count below must prove something
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA); // only this test sews leg_back_mid_l/r and sleeve_back_mid_r/l; the count below must prove something
 						Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
 						Wardrobes.use(server, new FileBackend(dir));
 						List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
@@ -3052,7 +3052,7 @@ public final class WardrobeTests {
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
-					Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, fixed);   // known stays false: nothing here may add it
+					Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, fixed); // known stays false: nothing here may add it
 					WardrobeBackend failing = new WardrobeBackend() {
 						@Override public Optional<Wardrobe> load(UUID owner) { return Optional.empty(); }
 						@Override public boolean store(UUID owner, Wardrobe next, long expectedVersion) { return true; }
@@ -3099,7 +3099,7 @@ public final class WardrobeTests {
 	private static void checkSewingOrder(GameTestHelper helper) {
 		Placement seat = Placement.parse("leg_front_mid_l.cerise"), leg = Placement.parse("leg_front_mid_r.batatu");
 		Combos.KeyedCombo stored = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "data/bottom:" + Placement.combo(List.of(seat, leg)).key()).getOrThrow();
-		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo());   // leg_front_mid_l.cerise + leg_front_mid_r.batatu: only this test sews these cells
+		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo()); // leg_front_mid_l.cerise + leg_front_mid_r.batatu: only this test sews these cells
 		try {
 			for (List<Placement> order : List.of(List.of(seat, leg), List.of(leg, seat))) {
 				Combos.Combo live = Placement.combo(order);
