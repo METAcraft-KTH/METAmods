@@ -51,6 +51,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		protected Function<HolderLookup.Provider, T> defaultConfigInitializerWithLookup;
 		protected boolean reloadsBeforeServer = false;
 		protected boolean reloadsAfterServer = false;
+		protected boolean resaveOnServerStart = false;
 		protected Optional<Path> configPath = Optional.empty();
 		protected boolean supportsConfigScreen = true;
 		protected ReloadFunction<T> reloader = ReloadFunction.getDefault();
@@ -81,6 +82,16 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 */
 		public Builder<T> reloadAfterServer() {
 			this.reloadsAfterServer = true;
+			return this;
+		}
+
+		/**
+		 * Forces the config to save when the server starts.
+		 * Necessary for translation keys defined via server-translations to work properly.
+		 * @return The builder.
+		 */
+		public Builder<T> resaveOnServerStart() {
+			this.resaveOnServerStart = true;
 			return this;
 		}
 
@@ -123,6 +134,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 			return new BasicConfigContainer<>(
 				codec.codec(), configPath.orElse(defaultPath(name)), defaultConfigInitializer,
 				reloadsBeforeServer, reloadsAfterServer,
+				resaveOnServerStart,
 				supportsConfigScreen ? Optional.of(name) : Optional.empty(),
 				reloader
 			);
@@ -137,6 +149,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 					codec.codec(), configPath.orElse(defaultPath(name)),
 					defaultConfigInitializerWithLookup != null ? defaultConfigInitializerWithLookup : l -> defaultConfigInitializer.get(),
 					reloadsBeforeServer, reloadsAfterServer,
+					resaveOnServerStart,
 					supportsConfigScreen ? Optional.of(name) : Optional.empty(),
 					reloader, lookupSupplier
 			);
@@ -303,7 +316,8 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 									}
 								},
 								reloadsBeforeServer, reloadsAfterServer,
-							supportsConfigScreen ? Optional.of(name) : Optional.empty(),
+								resaveOnServerStart,
+								supportsConfigScreen ? Optional.of(name) : Optional.empty(),
 								ServerAware.wrapReload(reloader)
 						),
 						parser, cacheReloader, defaultRegistryAwareInitializer, delayedInitializer

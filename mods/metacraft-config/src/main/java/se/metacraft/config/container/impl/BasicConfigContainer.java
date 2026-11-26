@@ -43,6 +43,13 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 				});
 			}
 		});
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			containers.keySet().forEach(container -> {
+				if (container.resaveOnServerStart) {
+					container.save();
+				}
+			});
+		});
 		ConfigContainer.CONFIG_FINDER.register(() -> containers.keySet().stream());
 	}
 
@@ -51,6 +58,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	protected final Supplier<T> defaultConfigInitializer;
 	protected final boolean reloadsBeforeServer;
 	protected final boolean reloadsAfterServer;
+	protected final boolean resaveOnServerStart;
 	protected final Optional<String> configScreenName;
 	protected final ReloadFunction<T> reloader;
 	protected Consumer<ReloadCause> onReload = cause -> {};
@@ -61,7 +69,9 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
 	public BasicConfigContainer(
 			Codec<T> codec, Path configPath, Supplier<T> defaultConfigInitializer,
-			boolean reloadsBeforeServer, boolean reloadsAfterServer, Optional<String> configScreenName,
+			boolean reloadsBeforeServer, boolean reloadsAfterServer,
+			boolean resaveOnServerStart,
+			Optional<String> configScreenName,
 			ReloadFunction<T> reloader
 	) {
 		this.codec = codec;
@@ -69,6 +79,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		this.defaultConfigInitializer = defaultConfigInitializer;
 		this.reloadsBeforeServer = reloadsBeforeServer;
 		this.reloadsAfterServer = reloadsAfterServer;
+		this.resaveOnServerStart = resaveOnServerStart;
 		this.configScreenName = configScreenName;
 		this.reloader = reloader;
 		containers.put(this, Unit.INSTANCE);
@@ -202,10 +213,11 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
 		public WithLookup(
 				Codec<T> codec, Path configPath, Function<HolderLookup.Provider, T> defaultConfigInitializer,
-				boolean reloadsBeforeServer, boolean reloadsAfterServer, Optional<String> configScreenName, ReloadFunction<T> reloader,
+				boolean reloadsBeforeServer, boolean reloadsAfterServer,
+				boolean resaveOnServerStart, Optional<String> configScreenName, ReloadFunction<T> reloader,
 				Supplier<HolderLookup.Provider> lookupSupplier
 		) {
-			super(codec, configPath, null, reloadsBeforeServer, reloadsAfterServer, configScreenName, reloader);
+			super(codec, configPath, null, reloadsBeforeServer, reloadsAfterServer, resaveOnServerStart, configScreenName, reloader);
 			this.lookupSupplier = lookupSupplier;
 			this.defaultConfigInitializer = defaultConfigInitializer;
 		}
