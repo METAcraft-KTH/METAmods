@@ -1,6 +1,10 @@
 package se.metacraft.portable_jukebox.item.components;
 
+import com.mojang.serialization.Codec;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.util.Unit;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.storage.loot.ContainerComponentManipulator;
 import se.metacraft.portable_jukebox.PortableJukebox;
 
@@ -24,7 +28,33 @@ public class Components {
 			"portable_jukebox_configuration", component -> component.persistent(PortableJukeboxConfiguration.CODEC)
 	);
 
+	public static final DataComponentType<Integer> STORAGE_SIZE = register(
+		"storage_size", component -> component.persistent(Codec.INT)
+	);
 
+	public static final DataComponentType<Unit> SHUFFLE_TOGGLE = register(
+		"shuffle_toggle", component -> component.persistent(Unit.CODEC)
+	);
+
+	public static final DataComponentType<Unit> PLAYLIST_TOGGLE = register(
+		"playlist_toggle", component -> component.persistent(Unit.CODEC)
+	);
+
+	public static final DataComponentType<Unit> PITCH_VOLUME_BUTTONS = register(
+		"pitch_volume_buttons", component -> component.persistent(Unit.CODEC)
+	);
+
+	public static final DataComponentType<ItemContainerContents> PORTABLE_JUKEBOX_STORAGE = register(
+		"storage", component -> component.persistent(ItemContainerContents.CODEC)
+	);
+
+	public static final DataComponentType<Autoplay> AUTOPLAY = register(
+		"autoplay", component -> component.persistent(Autoplay.CODEC)
+	);
+
+	public static final DataComponentType<Integer> CURRENT_SLOT = register(
+		"current_slot", component -> component.networkSynchronized(ByteBufCodecs.INT)
+	);
 
 	public static void init() {
 		Manipulators.init();
@@ -39,6 +69,7 @@ public class Components {
 	public static class Manipulators {
 
 		public static final ContainerComponentManipulator<PortableJukeboxInvData> PORTABLE_JUKEBOX = new ContainerComponentManipulator<>(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY);
+		public static final ContainerComponentManipulator<ItemContainerContents> PORTABLE_JUKEBOX_STORAGE = new ContainerComponentManipulator<>(Components.PORTABLE_JUKEBOX_STORAGE, ItemContainerContents.EMPTY);
 
 		public static void init() {
 

@@ -1,21 +1,36 @@
 package se.metacraft.portable_jukebox.block;
 
-import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
+import eu.pb4.polymer.blocks.api.BlockModelType;
+import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
+import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
+import eu.pb4.polymer.virtualentity.api.BlockWithElementHolder;
+import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.SkullBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.level.block.state.properties.RotationSegment;
 import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -24,6 +39,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
 import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
@@ -32,16 +48,53 @@ import se.metacraft.portable_jukebox.mixin.SkullBlockAccessor;
 
 import java.util.List;
 
-public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHeadBlock {
+public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerTexturedBlock, BlockWithElementHolder {
+
+	public static final IntegerProperty ROTATION = SkullBlock.ROTATION;
+
+	private final BlockState state;
 
 	public PortableJukeboxBlock(Properties settings) {
 		super(settings);
+		registerDefaultState(stateDefinition.any().setValue(ROTATION, 0));
+		this.state = PolymerBlockResourceUtils.requestEmpty(BlockModelType.CAMPFIRE);
 	}
 
 	@Override
-	public String getPolymerSkinValue(BlockState state, BlockPos pos, PacketContext ctx) {
-		//From: https://minecraft-heads.com/player-heads/head/3645-jukebox
-		return "ewogICJ0aW1lc3RhbXAiIDogMTcxODc5MzE5MzU4NiwKICAicHJvZmlsZUlkIiA6ICIxZjA1NGRlNDgwZmI0NjA0OWE0N2NlMmNiYWE0MjJkMiIsCiAgInByb2ZpbGVOYW1lIiA6ICJQaW5nUG9uZ0RlbGF5IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2JhZGU4ZjJiYjBhZDVjZDlmNWY5MGRjY2JjYTZlYmU3ZmEzZjk4YTU1OTgyMmNkMGIwNDQ1YzVjNzcyZGJiYTciCiAgICB9CiAgfQp9";
+	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+		builder.add(ROTATION);
+	}
+
+	@Override
+	public BlockState getStateForPlacement(BlockPlaceContext context) {
+		return defaultBlockState()
+				.setValue(ROTATION, RotationSegment.convertToSegment(context.getRotation()));
+	}
+
+	@Override
+	protected BlockState rotate(BlockState state, Rotation rotation) {
+		return state.setValue(ROTATION, rotation.rotate(state.getValue(ROTATION), 16));
+	}
+
+	@Override
+	protected BlockState mirror(BlockState state, Mirror mirror) {
+		return state.setValue(ROTATION, mirror.mirror(state.getValue(ROTATION), 16));
+	}
+
+	@Override
+	public ElementHolder createElementHolder(ServerLevel world, BlockPos pos, BlockState state) {
+		var stack = new ItemStack(Items.PAPER);
+		var display = new ItemDisplayElement(stack);
+		display.setItemDisplayContext(ItemDisplayContext.NONE);
+		display.setDisplaySize(1, 1);
+		// The display is centred on the block, like the model's 16x16x16 grid, so the model's bottom
+		// sits on the floor. Its front (the speakers) faces north, so turning it by the placer's yaw
+		// points the front back at them.
+		float yaw = Mth.wrapDegrees(state.getValue(ROTATION) * 22.5F + 180);
+		display.setTransformation(new Matrix4f().rotateY((float) Math.toRadians(-yaw)));
+		var holder = new ElementHolder();
+		holder.addElement(display);
+		return holder;
 	}
 
 	@Override
@@ -124,5 +177,10 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHead
 		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
 			PortableJukeboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getJukebox());
 		}
+	}
+
+	@Override
+	public BlockState getPolymerBlockState(BlockState state, @org.jspecify.annotations.Nullable PacketContext context) {
+		return this.state;
 	}
 }

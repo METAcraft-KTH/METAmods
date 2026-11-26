@@ -21,7 +21,11 @@ public interface ContainerComponentManipulatorsMixin {
 	)
 	private static <T> Stream<T> init(@NotNull Stream<T> original) {
 		//noinspection unchecked
-		return Stream.concat(original, Stream.of((T) Components.Manipulators.PORTABLE_JUKEBOX));
+		return Stream.concat(
+			original, Stream.of(
+				(T) Components.Manipulators.PORTABLE_JUKEBOX, (T) Components.Manipulators.PORTABLE_JUKEBOX_STORAGE
+			)
+		);
 	}
 
 }

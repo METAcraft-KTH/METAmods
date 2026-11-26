@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -24,6 +25,7 @@ import se.metacraft.portable_jukebox.item.Items;
 import se.metacraft.portable_jukebox.item.components.Components;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 public class DataFixTest implements CustomTestMethodInvoker {
@@ -61,9 +63,35 @@ public class DataFixTest implements CustomTestMethodInvoker {
 				return;
 			}
 			validateItem(helper, data.item().get());
+
+			var storage = jukebox.get(Components.PORTABLE_JUKEBOX_STORAGE);
+			if (storage == null) {
+				helper.fail("Data went missing");
+				return;
+			}
+			NonNullList<ItemStack> items = NonNullList.withSize(storage.size(), ItemStack.EMPTY);
+			storage.copyInto(items);
+			validateItem(helper, ItemStackTemplate.fromNonEmptyStack(items.get(0)));
+			validateItem(helper, ItemStackTemplate.fromNonEmptyStack(items.get(1)));
+			validateItem(helper, ItemStackTemplate.fromNonEmptyStack(items.get(5)));
 		} else {
 			helper.fail("Not a jukebox");
 		}
+	}
+
+	private Object upgradableSlot(int slot) {
+		return Map.of(
+			"item", upgradableItem(),
+			"slot", slot
+		);
+	}
+
+	private Object upgradableSlots() {
+		return List.of(
+			upgradableSlot(0),
+			upgradableSlot(1),
+			upgradableSlot(5)
+		);
 	}
 
 	@GameTest
@@ -75,7 +103,9 @@ public class DataFixTest implements CustomTestMethodInvoker {
 					"id", Items.PORTABLE_JUKEBOX.builtInRegistryHolder().key().identifier().toString(),
 					"components", Map.of(
 						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX).toString(),
-						upgradableItem()
+						upgradableItem(),
+						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX_STORAGE).toString(),
+						upgradableSlots()
 					)
 				)
 			),
@@ -103,7 +133,9 @@ public class DataFixTest implements CustomTestMethodInvoker {
 						"id", Items.PORTABLE_JUKEBOX.builtInRegistryHolder().key().identifier().toString(),
 						"components", Map.of(
 							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX).toString(),
-							upgradableItem()
+							upgradableItem(),
+							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX_STORAGE).toString(),
+							upgradableSlots()
 						)
 					)
 				)

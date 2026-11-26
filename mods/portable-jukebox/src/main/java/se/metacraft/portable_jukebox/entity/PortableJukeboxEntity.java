@@ -36,6 +36,7 @@ import se.metacraft.portable_jukebox.PortableJukebox;
 import se.metacraft.portable_jukebox.data.RemovalAware;
 import se.metacraft.portable_jukebox.item.Items;
 import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.components.Autoplay;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxConfiguration;
 import se.metacraft.portable_jukebox.item.components.PortableJukeboxEntityEntry;
@@ -116,7 +117,13 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		var song = get();
 		var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
 		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.pitch()) {
+			boolean finished = song.isPresent() && !isRemoved() && attachment != null;
 			discard();
+			// With Shuffle on, start the next song in a new sound source.
+			if (finished) {
+				Autoplay.playNext(jukebox, attachment, getRandom());
+			}
+			return;
 		}
 		if (!this.isRemoved() && !this.level().isClientSide() && tickCount % 20 == 0) {
 			level().gameEvent(this, GameEvent.JUKEBOX_PLAY, this.position());
