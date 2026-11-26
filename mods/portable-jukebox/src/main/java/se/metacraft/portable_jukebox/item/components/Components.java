@@ -40,8 +40,12 @@ public class Components {
 		"playlist_toggle", component -> component.persistent(Unit.CODEC)
 	);
 
-	public static final DataComponentType<Unit> PITCH_VOLUME_BUTTONS = register(
-		"pitch_volume_buttons", component -> component.persistent(Unit.CODEC)
+	public static final DataComponentType<Unit> VOLUME_BUTTONS = register(
+		"volume_buttons", component -> component.persistent(Unit.CODEC)
+	);
+
+	public static final DataComponentType<Unit> PITCH_BUTTONS = register(
+		"pitch_buttons", component -> component.persistent(Unit.CODEC)
 	);
 
 	public static final DataComponentType<ItemContainerContents> PORTABLE_JUKEBOX_STORAGE = register(

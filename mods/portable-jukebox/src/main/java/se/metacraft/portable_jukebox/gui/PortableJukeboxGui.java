@@ -155,7 +155,7 @@ public class PortableJukeboxGui extends LayeredGui {
 	}
 
 	private static boolean hasConfiguration(ItemStack jukebox) {
-		return jukebox.has(Components.PITCH_VOLUME_BUTTONS);
+		return jukebox.has(Components.VOLUME_BUTTONS) || jukebox.has(Components.PITCH_BUTTONS);
 	}
 
 	private static int storageRows(ItemStack jukebox) {
@@ -277,59 +277,63 @@ public class PortableJukeboxGui extends LayeredGui {
 	private void drawConfiguration() {
 		var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
 
-		configurationLayer.setSlot(PITCH_X + 1, icon(Items.NOTE_BLOCK, Component.translatable("portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())))
-				.set(DataComponents.LORE, lore(
+		if (jukebox.has(Components.PITCH_BUTTONS)) {
+			configurationLayer.setSlot(PITCH_X + 1, icon(Items.NOTE_BLOCK, Component.translatable("portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())))
+					.set(DataComponents.LORE, lore(
 						Component.translatable("portable_jukebox.gui.pitch.description"),
 						Component.translatable("portable_jukebox.gui.restarts_song"),
 						Component.translatable("portable_jukebox.gui.reset").withStyle(ChatFormatting.DARK_GRAY)
-				)).build(),
+					)).build(),
 				() -> configure(c -> c.withPitch(PortableJukeboxConfiguration.DEFAULT.pitch())));
-		configurationLayer.setSlot(VOLUME_X + 1, icon(Items.BELL, volumeName(config.volume()))
-				.set(DataComponents.LORE, lore(
+			configurationLayer.setSlot(
+				PITCH_X, button(
+					false, "portable_jukebox.gui.pitch.down",
+					Component.translatable(
+						"portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())
+					)
+				),
+				() -> configure(PortableJukeboxConfiguration::pitchDown)
+			);
+			configurationLayer.setSlot(
+				PITCH_X + 2,
+				button(
+					true, "portable_jukebox.gui.pitch.up",
+					Component.translatable(
+						"portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())
+					)
+				),
+				() -> configure(PortableJukeboxConfiguration::pitchUp)
+			);
+		}
+
+		if (jukebox.has(Components.VOLUME_BUTTONS)) {
+			configurationLayer.setSlot(VOLUME_X + 1, icon(Items.BELL, volumeName(config.volume()))
+					.set(DataComponents.LORE, lore(
 						Component.translatable("portable_jukebox.gui.volume.range", PortableJukeboxConfiguration.hearingRange(config.volume())),
 						Component.translatable("portable_jukebox.gui.restarts_song"),
 						Component.translatable("portable_jukebox.gui.reset").withStyle(ChatFormatting.DARK_GRAY)
-				)).build(),
+					)).build(),
 				() -> configure(c -> c.withVolume(PortableJukeboxConfiguration.DEFAULT.volume())));
-
-		configurationLayer.setSlot(
-			PITCH_X, button(
-				false, "portable_jukebox.gui.pitch.down",
-				Component.translatable(
-					"portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())
-				)
-			),
-			() -> configure(PortableJukeboxConfiguration::pitchDown)
-		);
-		configurationLayer.setSlot(
-			PITCH_X + 2,
-			button(
-				true, "portable_jukebox.gui.pitch.up",
-				Component.translatable(
-					"portable_jukebox.gui.pitch", PortableJukeboxConfiguration.formatPitch(config.pitch())
-				)
-			),
-			() -> configure(PortableJukeboxConfiguration::pitchUp)
-		);
-		// Past full loudness the volume buttons only change how far the song carries, so they say so.
-		boolean boosted = PortableJukeboxConfiguration.isRangeBoosted(config.volume());
-		boolean fullyLoud = config.volume() >= 1.0f;
-		configurationLayer.setSlot(
-			VOLUME_X,
-			button(
-				false, boosted ? "portable_jukebox.gui.range.down" : "portable_jukebox.gui.volume.down",
-				volumeName(config.volume())
-			),
-			() -> configure(PortableJukeboxConfiguration::volumeDown)
-		);
-		configurationLayer.setSlot(
-			VOLUME_X + 2,
-			button(
-				true, fullyLoud ? "portable_jukebox.gui.range.up" : "portable_jukebox.gui.volume.up",
-				volumeName(config.volume())
-			),
-			() -> configure(PortableJukeboxConfiguration::volumeUp)
-		);
+			// Past full loudness the volume buttons only change how far the song carries, so they say so.
+			boolean boosted = PortableJukeboxConfiguration.isRangeBoosted(config.volume());
+			boolean fullyLoud = config.volume() >= 1.0f;
+			configurationLayer.setSlot(
+				VOLUME_X,
+				button(
+					false, boosted ? "portable_jukebox.gui.range.down" : "portable_jukebox.gui.volume.down",
+					volumeName(config.volume())
+				),
+				() -> configure(PortableJukeboxConfiguration::volumeDown)
+			);
+			configurationLayer.setSlot(
+				VOLUME_X + 2,
+				button(
+					true, fullyLoud ? "portable_jukebox.gui.range.up" : "portable_jukebox.gui.volume.up",
+					volumeName(config.volume())
+				),
+				() -> configure(PortableJukeboxConfiguration::volumeUp)
+			);
+		}
 	}
 
 	/**
