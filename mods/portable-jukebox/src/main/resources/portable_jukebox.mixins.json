@@ -24,7 +24,6 @@
 		"ServerEntityMixin",
 		"ServerPlayerMixin",
 		"SimpleMutableContainerAccessor",
-		"SkullBlockAccessor",
 		"SlotMixin",
 		"V3818_3Mixin",
 		"V3818Mixin"
