@@ -14,7 +14,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import se.metacraft.portable_jukebox.gui.BoomboxGui;
 
-public class Components {
+public class BoomboxComponents {
 
 	//Careful, this is used by a datafixer!
 	public static final DataComponentType<BoomboxInvData> BOOMBOX = register(
@@ -79,8 +79,8 @@ public class Components {
 
 	public static class Manipulators {
 
-		public static final ContainerComponentManipulator<BoomboxInvData> BOOMBOX = new ContainerComponentManipulator<>(Components.BOOMBOX, BoomboxInvData.EMPTY);
-		public static final ContainerComponentManipulator<ItemContainerContents> BOOMBOX_STORAGE = new ContainerComponentManipulator<>(Components.BOOMBOX_STORAGE, ItemContainerContents.EMPTY);
+		public static final ContainerComponentManipulator<BoomboxInvData> BOOMBOX = new ContainerComponentManipulator<>(BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY);
+		public static final ContainerComponentManipulator<ItemContainerContents> BOOMBOX_STORAGE = new ContainerComponentManipulator<>(BoomboxComponents.BOOMBOX_STORAGE, ItemContainerContents.EMPTY);
 
 		public static void init() {
 

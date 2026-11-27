@@ -6,7 +6,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 
 public class BoomboxStorageInventory implements Container {
 
@@ -20,7 +20,7 @@ public class BoomboxStorageInventory implements Container {
 
 	@Override
 	public int getContainerSize() {
-		return boombox.getOrDefault(Components.STORAGE_SIZE, 0);
+		return boombox.getOrDefault(BoomboxComponents.STORAGE_SIZE, 0);
 	}
 
 	@Override
@@ -78,7 +78,7 @@ public class BoomboxStorageInventory implements Container {
 
 	@Override
 	public void clearContent() {
-		boombox.remove(Components.BOOMBOX_STORAGE);
+		boombox.remove(BoomboxComponents.BOOMBOX_STORAGE);
 	}
 
 	@Override

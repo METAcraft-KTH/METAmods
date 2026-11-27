@@ -22,11 +22,11 @@ public record BoomboxConfiguration(float volume, float speed) {
 	);
 
 	public static BoomboxConfiguration defaultFor(ItemStack boombox) {
-		return boombox.has(Components.VOLUME_BUTTONS) ? UPGRADED_DEFAULT : DEFAULT;
+		return boombox.has(BoomboxComponents.VOLUME_BUTTONS) ? UPGRADED_DEFAULT : DEFAULT;
 	}
 
 	public static BoomboxConfiguration of(ItemStack boombox) {
-		return boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, defaultFor(boombox));
+		return boombox.getOrDefault(BoomboxComponents.BOOMBOX_CONFIGURATION, defaultFor(boombox));
 	}
 
 	public BoomboxConfiguration withVolume(float volume) {

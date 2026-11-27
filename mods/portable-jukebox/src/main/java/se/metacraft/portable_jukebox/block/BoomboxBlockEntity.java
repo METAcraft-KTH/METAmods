@@ -20,7 +20,7 @@ import se.metacraft.lib.util.EntityRef;
 import se.metacraft.lib.util.TaskScheduler;
 import se.metacraft.portable_jukebox.gui.BoomboxStorageInventory;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
 
 public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleItem.BlockContainerSingleItem {
@@ -34,7 +34,7 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	}
 
 	public BoomboxBlockEntity(BlockPos pos, BlockState state) {
-		super(Blocks.BlockEntities.BOOMBOX, pos, state);
+		super(BoomboxBlocks.BlockEntities.BOOMBOX, pos, state);
 	}
 
 	public void setBoombox(ItemStack boombox) {
@@ -96,7 +96,7 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	@Override
 	public ItemStack getTheItem() {
 		return boombox.getOrDefault(
-			Components.BOOMBOX, BoomboxInvData.EMPTY
+			BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY
 		).getItem();
 	}
 
@@ -122,7 +122,7 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	@Override
 	public void setTheItem(ItemStack stack) {
 		var prev = this.boombox.update(
-			Components.BOOMBOX, BoomboxInvData.EMPTY,
+			BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY,
 			boombox -> boombox.withItem(stack)
 		);
 		BoomboxItem.updateStackChange(

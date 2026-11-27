@@ -24,10 +24,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.block.Blocks;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.block.BoomboxBlocks;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.EntityRefHelper;
-import se.metacraft.portable_jukebox.entity.Entities;
+import se.metacraft.portable_jukebox.entity.BoomboxEntities;
 import se.metacraft.portable_jukebox.gui.BoomboxGui;
 import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
 
@@ -41,7 +41,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	private static final int MAX_TOOLTIP_DISCS = 5;
 
 	public BoomboxItem(Item.Properties settings) {
-		super(Blocks.BOOMBOX, settings);
+		super(BoomboxBlocks.BOOMBOX, settings);
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 
 	public static void play(ItemStack stack, EntityRef entity) {
 		stop(stack, (ServerLevel) entity.getWorld());
-		var boomboxPlayer = Entities.BOOMBOX.create(entity.getWorld(), EntitySpawnReason.TRIGGERED);
+		var boomboxPlayer = BoomboxEntities.BOOMBOX.create(entity.getWorld(), EntitySpawnReason.TRIGGERED);
 		var pos = entity.getPos();
 		boomboxPlayer.setPosRaw(pos.x(), pos.y(), pos.z());
 		boomboxPlayer.setConnectedEntity(entity);
@@ -66,7 +66,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	}
 
 	public static void stop(ItemStack stack, ServerLevel world) {
-		Optional.ofNullable(stack.get(Components.BOOMBOX_ENTITY)).ifPresent(entityEntry -> {
+		Optional.ofNullable(stack.get(BoomboxComponents.BOOMBOX_ENTITY)).ifPresent(entityEntry -> {
 			var entity = world.getEntity(entityEntry.entity());
 			if (entity != null) {
 				entity.discard();
@@ -88,7 +88,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	@Override
 	public void onDestroyed(ItemEntity entity) {
 		super.onDestroyed(entity);
-		Optional.ofNullable(entity.getItem().get(Components.BOOMBOX)).ifPresent(disc -> {
+		Optional.ofNullable(entity.getItem().get(BoomboxComponents.BOOMBOX)).ifPresent(disc -> {
 			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc.getItem());
 		});
 		for (var stored : getStorage(entity.getItem()).nonEmptyItems()) {
@@ -132,12 +132,12 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	}
 
 	public static ItemContainerContents getStorage(ItemStack boombox) {
-		return boombox.getOrDefault(Components.BOOMBOX_STORAGE, ItemContainerContents.EMPTY);
+		return boombox.getOrDefault(BoomboxComponents.BOOMBOX_STORAGE, ItemContainerContents.EMPTY);
 	}
 
 	public static NonNullList<ItemStack> getStorageList(ItemStack boombox) {
 		NonNullList<ItemStack> list = NonNullList.withSize(
-			boombox.getOrDefault(Components.STORAGE_SIZE, 0),
+			boombox.getOrDefault(BoomboxComponents.STORAGE_SIZE, 0),
 			ItemStack.EMPTY
 		);
 		getStorage(boombox).copyInto(list);
@@ -146,14 +146,14 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 
 	public static void setStorage(ItemStack boombox, ItemContainerContents items) {
 		if (reStream(items).findAny().isEmpty()) {
-			boombox.remove(Components.BOOMBOX_STORAGE);
+			boombox.remove(BoomboxComponents.BOOMBOX_STORAGE);
 		} else {
-			boombox.set(Components.BOOMBOX_STORAGE, items);
+			boombox.set(BoomboxComponents.BOOMBOX_STORAGE, items);
 		}
 	}
 
 	public static Optional<ItemStack> getDiscFromBoombox(ItemInstance stack) {
-		return stack.getOrDefault(Components.BOOMBOX, BoomboxInvData.EMPTY).getNonEmptyItem();
+		return stack.getOrDefault(BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY).getNonEmptyItem();
 	}
 
 	public static Optional<Holder<JukeboxSong>> getSongFromBoombox(ItemInstance stack) {
@@ -165,7 +165,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	}
 
 	public static void updateStackChange(EntityRef entity, ItemStack prevDisc, ItemStack stack) {
-		if (stack.has(Components.BOOMBOX_ENTITY)) {
+		if (stack.has(BoomboxComponents.BOOMBOX_ENTITY)) {
 			var currentSong = getSongFromBoombox(stack);
 			if (
 					currentSong.isPresent() &&
@@ -178,7 +178,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 
 	public static void updateRedstone(EntityRef entity, ItemStack stack) {
 		if (entity.isReceivingRedstonePower()) {
-			if (!stack.has(Components.BOOMBOX_ENTITY)) {
+			if (!stack.has(BoomboxComponents.BOOMBOX_ENTITY)) {
 				play(stack, entity);
 			}
 		}

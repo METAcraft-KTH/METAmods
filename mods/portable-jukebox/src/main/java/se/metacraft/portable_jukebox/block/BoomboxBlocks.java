@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -14,11 +15,11 @@ import se.metacraft.portable_jukebox.Boombox;
 
 import java.util.function.Function;
 
-public class Blocks {
+public class BoomboxBlocks {
 
 	public static final BoomboxBlock BOOMBOX = register(
 			"portable_jukebox", BoomboxBlock::new,
-			BlockBehaviour.Properties.ofFullCopy(net.minecraft.world.level.block.Blocks.PLAYER_HEAD)
+			BlockBehaviour.Properties.ofFullCopy(Blocks.PLAYER_HEAD)
 					.strength(0.8F)
 					.sound(SoundType.WOOD)
 	);
@@ -36,7 +37,7 @@ public class Blocks {
 
 		public static final BlockEntityType<BoomboxBlockEntity> BOOMBOX = register(
 				"portable_jukebox", FabricBlockEntityTypeBuilder.create(
-						BoomboxBlockEntity::new, Blocks.BOOMBOX
+						BoomboxBlockEntity::new, BoomboxBlocks.BOOMBOX
 				).build()
 		);
 

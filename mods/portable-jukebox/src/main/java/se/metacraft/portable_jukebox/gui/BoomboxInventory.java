@@ -3,7 +3,7 @@ package se.metacraft.portable_jukebox.gui;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
 
 public class BoomboxInventory implements Container {
@@ -17,12 +17,12 @@ public class BoomboxInventory implements Container {
 	}
 
 	private ItemStack getStack() {
-		return boombox.getOrDefault(Components.BOOMBOX, BoomboxInvData.EMPTY).getItem();
+		return boombox.getOrDefault(BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY).getItem();
 	}
 
 	private ItemStack remove() {
 		var prev = boombox.update(
-			Components.BOOMBOX, BoomboxInvData.EMPTY, boombox -> boombox.withItem(ItemStack.EMPTY)
+			BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY, boombox -> boombox.withItem(ItemStack.EMPTY)
 		);
 		return prev != null ? prev.getItem() : ItemStack.EMPTY;
 	}
@@ -60,7 +60,7 @@ public class BoomboxInventory implements Container {
 	@Override
 	public void setItem(int slot, ItemStack stack) {
 		if (!stack.isEmpty()) {
-			boombox.update(Components.BOOMBOX, BoomboxInvData.EMPTY, boombox -> boombox.withItem(stack));
+			boombox.update(BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY, boombox -> boombox.withItem(stack));
 		} else {
 			remove();
 		}
