@@ -45,6 +45,104 @@ jobs:
         run: echo "servers=$(jq -c --arg b "$BRANCH" '.branches[$b] // []' deploy/servers.json)" >> "$GITHUB_OUTPUT"
       - name: datagen
         run: ./gradlew runDatagen
+      - name: diagnose Checkstyle failure
+        shell: bash
+        run: |
+              set -o pipefail
+              
+              # ── 1. Run Checkstyle and capture the log ────────────────────
+              echo "=== Running Checkstyle ==="
+              ./gradlew checkstyleMain --stacktrace 2>&1 | tee /tmp/checkstyle.log
+              RESULT=${PIPESTATUS[0]}
+              
+              if [ "$RESULT" -eq 0 ]; then
+                echo "::notice::Checkstyle passed – nothing to diagnose"
+                exit 0
+              fi
+              
+              echo
+              echo "::error::Checkstyle failed (exit $RESULT). Identifying the offending file(s)…"
+              
+              # ── 2. Extract the file path(s) that errored ─────────────────
+              # Checkstyle / Gradle prints errors as  /path/File.java:LINE:COL: …
+              ERROR_FILES=$(grep -oP '[\w/.\-]+\.java(?=:\d+)' /tmp/checkstyle.log | sort -u)
+              
+              # Fallback: the XML report (always written even if the task failed)
+              if [ -z "$ERROR_FILES" ] && [ -f "build/reports/checkstyle/main.xml" ]; then
+                ERROR_FILES=$(grep -oP 'name="\K[^"]+\.java' build/reports/checkstyle/main.xml | sort -u)
+              fi
+              
+              # Last resort: any .java path mentioned in a stack trace
+              if [ -z "$ERROR_FILES" ]; then
+                ERROR_FILES=$(grep -oP '[\w/.\-]+\.java' /tmp/checkstyle.log | sort -u)
+              fi
+              
+              if [ -z "$ERROR_FILES" ]; then
+                echo "::error::Could not identify the errored file from the log."
+                echo "─────────────────────────────────────────────"
+                tail -80 /tmp/checkstyle.log
+                exit 1
+              fi
+              
+              echo "Errored file(s):"
+              echo "$ERROR_FILES"
+              echo
+              
+              # ── 3. Diagnose each errored file ────────────────────────────
+              for FILE in $ERROR_FILES; do
+                # Strip the GitHub Actions workspace prefix (/home/runner/work/…)
+                case "$FILE" in
+                  /*) FILE="${FILE#*/work/*/}" ;;
+                esac
+              
+                echo "═══════════════════════════════════════════════"
+                echo "  $FILE"
+                echo "═══════════════════════════════════════════════"
+              
+                if [ ! -f "$FILE" ]; then
+                  echo "::error::$FILE not found on this runner (stale workspace?)"
+                  echo
+                  continue
+                fi
+              
+                # size / checksum
+                ls -l "$FILE"
+                wc -lc "$FILE"
+                md5sum "$FILE"
+              
+                # BOM
+                echo "── encoding / BOM ──"
+                file --mime-encoding "$FILE"
+                hexdump -C "$FILE" | head -3
+                if head -c 3 "$FILE" | xxd -p | grep -q '^efbbbf'; then
+                  echo "::error::UTF-8 BOM present in $FILE"
+                fi
+              
+                # line endings
+                echo "── line endings ──"
+                if grep -qP '\r' "$FILE"; then
+                  echo "::warning::CRLF found in $FILE (first occurrences):"
+                  grep -nP '\r' "$FILE" | head -20
+                else
+                  echo "All LF – OK"
+                fi
+              
+                # does the file match what was committed?
+                echo "── git state ──"
+                if ! git diff --quiet HEAD -- "$FILE" 2>/dev/null; then
+                  echo "::error::$FILE differs from HEAD on this runner:"
+                  git diff HEAD -- "$FILE"
+                else
+                  echo "Clean – matches HEAD"
+                fi
+              
+                # show the exact Checkstyle lines for this file
+                echo "── Checkstyle lines mentioning this file ──"
+                grep -n "$FILE" /tmp/checkstyle.log | head -20
+                echo
+              done
+              
+              exit 1
       - name: build
         run: ./gradlew build
       - name: deploy tooling tests
