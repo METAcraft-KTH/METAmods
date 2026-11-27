@@ -114,6 +114,12 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	}
 
 	@Override
+	public void clearContent() {
+		BlockContainerSingleItem.super.clearContent();
+		storage().clearContent();
+	}
+
+	@Override
 	public void setTheItem(ItemStack stack) {
 		var prev = this.boombox.update(
 			Components.BOOMBOX, BoomboxInvData.EMPTY,
