@@ -107,7 +107,7 @@ public final class MetacraftBooklet implements ModInitializer {
 
 			// Vanilla+ Features
 			// (order: Recipes 5, Void Anchor 10, Silencing mobs 20, Concrete Crafting 30, New Decor 40, Player Shops 50,
-			// Gestures 60, Anvils 70, Pets 80, Item Skins 90, Portable Jukebox 100, Graves 110)
+			// Gestures 60, Anvils 70, Pets 80, Item Skins 90, Boombox 100, Graves 110)
 			Hook.anyOf("vanilla_plus", "metacraft-qol", "polydecorations", "metacraft-player-trading", "danse", "polydex",
 					"metacraft-repair-fix", "better-pets", "metacraft-skins", "portable-jukebox", "universal-graves"),
 			// also End Changes: the void anchor, in both sections

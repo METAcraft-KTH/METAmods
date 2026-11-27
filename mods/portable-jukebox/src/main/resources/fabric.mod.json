@@ -3,7 +3,7 @@
 	"id": "portable-jukebox",
 	"version": "${version}",
 	"name": "Boombox",
-	"description": "Portable jukeboxes that can play music while in your inventory",
+	"description": "A jukebox you can carry, with upgrades for storage, shuffle, volume and speed",
 	"authors": [
 		"Acuadragon100"
 	],
