@@ -149,24 +149,24 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 			!world.isClientSide() && player.preventsBlockDrops() &&
 			world.getBlockEntity(pos) instanceof BoomboxBlockEntity boombox && BoomboxItem.hasDiscs(boombox.getBoombox())
 		) {
-			var entity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, droppedStack(boombox));
+			var entity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, dropStack(boombox));
 			entity.setDefaultPickUpDelay();
 			world.addFreshEntity(entity);
 		}
 		return super.playerWillDestroy(world, pos, state, player);
 	}
 
-	private static ItemStack droppedStack(BoomboxBlockEntity boombox) {
-		var stack = boombox.getBoombox().copy();
-		stack.remove(BoomboxComponents.BOOMBOX_ENTITY);
-		return stack;
+	private static ItemStack dropStack(BoomboxBlockEntity boombox) {
+		var copy = boombox.getBoombox().copy();
+		boombox.getBoombox().remove(BoomboxComponents.BOOMBOX_ENTITY);
+		return copy;
 	}
 
 	@Override
 	protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
 		BlockEntity blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity instanceof BoomboxBlockEntity boombox) {
-			return List.of(droppedStack(boombox));
+			return List.of(dropStack(boombox));
 		}
 		return super.getDrops(state, builder);
 	}
@@ -175,7 +175,8 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 	protected ItemStack getCloneItemStack(LevelReader world, BlockPos pos, BlockState state, boolean includeData) {
 		if (world.getBlockEntity(pos) instanceof BoomboxBlockEntity boombox && !boombox.getBoombox().isEmpty()) {
 			// A plain pick gives an empty boombox; Ctrl + pick keeps the contents.
-			var stack = droppedStack(boombox);
+			var stack = boombox.getBoombox().copy();
+			stack.remove(BoomboxComponents.BOOMBOX_ENTITY);
 			if (!includeData) {
 				stack.remove(BoomboxComponents.BOOMBOX);
 				stack.remove(BoomboxComponents.BOOMBOX_STORAGE);
