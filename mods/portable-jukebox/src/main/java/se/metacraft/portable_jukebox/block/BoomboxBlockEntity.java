@@ -114,6 +114,14 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	}
 
 	@Override
+	public void removeComponentsFromTag(
+		final @NonNull ValueOutput output
+	) {
+		super.removeComponentsFromTag(output);
+		output.discard(BOOMBOX);
+	}
+
+	@Override
 	public void clearContent() {
 		BlockContainerSingleItem.super.clearContent();
 		storage().clearContent();
