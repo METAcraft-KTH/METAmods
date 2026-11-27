@@ -126,6 +126,8 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 			BoomboxEntity.transfer(
 					EntityRef.fromEntity(placer), EntityRef.fromBlock(b), b.getBoombox()
 			);
+			// Creative keeps the stack in hand, which would otherwise still own the sound.
+			itemStack.remove(Components.BOOMBOX_ENTITY);
 		}
 	}
 

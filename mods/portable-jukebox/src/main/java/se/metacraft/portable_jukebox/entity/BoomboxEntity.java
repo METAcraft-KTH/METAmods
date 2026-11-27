@@ -18,6 +18,10 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -25,6 +29,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -33,6 +39,7 @@ import se.metacraft.lib.util.helper.EntityTrackerHelper;
 import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.InventoryHelper;
 import se.metacraft.portable_jukebox.Boombox;
+import se.metacraft.portable_jukebox.block.BoomboxBlockEntity;
 import se.metacraft.portable_jukebox.data.RemovalAware;
 import se.metacraft.portable_jukebox.item.Items;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
@@ -43,6 +50,7 @@ import se.metacraft.portable_jukebox.item.components.BoomboxEntityEntry;
 import se.metacraft.portable_jukebox.ItemWithInventoryHelper;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware {
 
@@ -114,6 +122,10 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 					pos.x(), pos.y(), pos.z()
 			);
 		}
+		if (!isRemoved() && tickCount > 0 && tickCount % 4 == 0 && !isHeld()) {
+			discard();
+			return;
+		}
 		var song = get();
 		var config = BoomboxConfiguration.of(boombox);
 		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.speed()) {
@@ -132,6 +144,33 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 					0, getRandom().nextInt(4) / 24.0f, 0, 1
 			);
 		}
+	}
+
+	private boolean holds(ItemStack stack) {
+		return BoomboxEntityEntry.get(stack).anyMatch(getUUID()::equals);
+	}
+
+	private boolean holds(Container container) {
+		return IntStream.range(0, container.getContainerSize()).anyMatch(slot -> holds(container.getItem(slot)));
+	}
+
+	/** Whether the stack this plays for is still with whatever it follows. Holders that can't be checked count as holding it. */
+	private boolean isHeld() {
+		return switch (attachment.get()) {
+			case Player player -> holds(player.getInventory()) || holds(player.containerMenu.getCarried())
+					|| player.containerMenu.slots.stream().anyMatch(slot -> holds(slot.getItem()))
+					|| player.inventoryMenu.slots.stream().anyMatch(slot -> holds(slot.getItem()));
+			case LivingEntity living -> Arrays.stream(EquipmentSlot.values()).anyMatch(slot -> holds(living.getItemBySlot(slot)));
+			case ItemEntity item -> holds(item.getItem());
+			case ItemFrame frame -> holds(frame.getItem());
+			case BoomboxBlockEntity block -> holds(block.getBoombox());
+			case ChestBlockEntity chest when chest.getBlockState().getBlock() instanceof ChestBlock block -> {
+				var container = ChestBlock.getContainer(block, chest.getBlockState(), level(), chest.getBlockPos(), true);
+				yield container == null || holds(container);
+			}
+			case Container container -> holds(container);
+			case null, default -> true;
+		};
 	}
 
 	@Override
