@@ -8,32 +8,32 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.util.CommentCodec;
 
-public record PortableJukeboxConfig(
+public record BoomboxConfig(
 	DefaultUpgrades defaultUpgrades
 ) {
 
-	public static final MapCodec<PortableJukeboxConfig> CODEC = RecordCodecBuilder.mapCodec(
+	public static final MapCodec<BoomboxConfig> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			CommentCodec.comment(
 				DefaultUpgrades.CODEC.fieldOf("default_upgrades"),
 				Component.translatable("config.portable_jukebox.default_upgrades")
-			).forGetter(PortableJukeboxConfig::defaultUpgrades)
-		).apply(instance, PortableJukeboxConfig::new)
+			).forGetter(BoomboxConfig::defaultUpgrades)
+		).apply(instance, BoomboxConfig::new)
 	);
 
-	private static final ConfigContainer<PortableJukeboxConfig> CONTAINER = ConfigContainer.Builder.create(
-		CODEC, () -> new PortableJukeboxConfig(
+	private static final ConfigContainer<BoomboxConfig> CONTAINER = ConfigContainer.Builder.create(
+		CODEC, () -> new BoomboxConfig(
 			new DefaultUpgrades(9, false, false, false, false)
 		)
 	).resaveOnServerStart().build("portable-jukebox");
 
-	public static PortableJukeboxConfig getConfig() {
+	public static BoomboxConfig getConfig() {
 		return CONTAINER.get();
 	}
 
 	public record DefaultUpgrades(
 		int storage,
-		boolean pitch,
+		boolean speed,
 		boolean volume,
 		boolean shuffle,
 		boolean playlist
@@ -45,9 +45,9 @@ public record PortableJukeboxConfig(
 					Component.translatable("config.portable_jukebox.default_upgrades.storage")
 				).forGetter(DefaultUpgrades::storage),
 				CommentCodec.comment(
-					Codec.BOOL.fieldOf("pitch"),
-					Component.translatable("config.portable_jukebox.default_upgrades.pitch")
-				).forGetter(DefaultUpgrades::pitch),
+					Codec.BOOL.fieldOf("speed"),
+					Component.translatable("config.portable_jukebox.default_upgrades.speed")
+				).forGetter(DefaultUpgrades::speed),
 				CommentCodec.comment(
 					Codec.BOOL.fieldOf("volume"),
 					Component.translatable("config.portable_jukebox.default_upgrades.volume")

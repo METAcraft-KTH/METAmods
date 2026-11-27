@@ -32,26 +32,26 @@ import se.metacraft.lib.util.EntityRef;
 import se.metacraft.lib.util.helper.EntityTrackerHelper;
 import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.InventoryHelper;
-import se.metacraft.portable_jukebox.PortableJukebox;
+import se.metacraft.portable_jukebox.Boombox;
 import se.metacraft.portable_jukebox.data.RemovalAware;
 import se.metacraft.portable_jukebox.item.Items;
-import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.Autoplay;
 import se.metacraft.portable_jukebox.item.components.Components;
-import se.metacraft.portable_jukebox.item.components.PortableJukeboxConfiguration;
-import se.metacraft.portable_jukebox.item.components.PortableJukeboxEntityEntry;
+import se.metacraft.portable_jukebox.item.components.BoomboxConfiguration;
+import se.metacraft.portable_jukebox.item.components.BoomboxEntityEntry;
 import se.metacraft.portable_jukebox.ItemWithInventoryHelper;
 
 import java.util.*;
 
-public class PortableJukeboxEntity extends Entity implements PolymerEntity, RemovalAware {
+public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware {
 
 	private EntityRef attachment;
-	private ItemStack jukebox = ItemStack.EMPTY;
+	private ItemStack boombox = ItemStack.EMPTY;
 
 	private final Set<ServerPlayer> hearingPlayers = new HashSet<>();
 
-	public PortableJukeboxEntity(EntityType<?> type, Level world) {
+	public BoomboxEntity(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
@@ -69,15 +69,15 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	private Optional<JukeboxSong> get() {
-		return PortableJukeboxItem.getSongFromJukebox(jukebox).map(Holder::value);
+		return BoomboxItem.getSongFromBoombox(boombox).map(Holder::value);
 	}
 
 	private static final int COLOUR_COUNT = ChatFormatting.OBFUSCATED.ordinal();
 
-	public void setJukebox(ItemStack jukebox) {
-		this.jukebox = jukebox;
+	public void setBoombox(ItemStack boombox) {
+		this.boombox = boombox;
 		get().ifPresentOrElse(song -> {
-			jukebox.set(Components.PORTABLE_JUKEBOX_ENTITY, new PortableJukeboxEntityEntry(
+			boombox.set(Components.BOOMBOX_ENTITY, new BoomboxEntityEntry(
 					this.getUUID()
 			));
 			for (var player : hearingPlayers) {
@@ -87,20 +87,20 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 						)
 				);
 			}
-			var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
+			var config = boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT);
 			for (var player : level().players()) {
 				((ServerPlayer) player).connection.send(new ClientboundSoundEntityPacket(
 						song.soundEvent(), SoundSource.RECORDS, this,
-						config.volume(), config.pitch(), this.getRandom().nextLong()
+						config.volume(), config.speed(), this.getRandom().nextLong()
 				));
 			}
 		}, () -> {
-			this.jukebox = ItemStack.EMPTY;
+			this.boombox = ItemStack.EMPTY;
 		});
 	}
 
 	public void fixStack(ItemStack newStack) {
-		this.jukebox = newStack;
+		this.boombox = newStack;
 	}
 
 	@Override
@@ -115,13 +115,13 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 			);
 		}
 		var song = get();
-		var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
-		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.pitch()) {
+		var config = boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT);
+		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.speed()) {
 			boolean finished = song.isPresent() && !isRemoved() && attachment != null;
 			discard();
 			// With Shuffle on, start the next song in a new sound source.
 			if (finished) {
-				Autoplay.playNext(jukebox, attachment, getRandom());
+				Autoplay.playNext(boombox, attachment, getRandom());
 			}
 			return;
 		}
@@ -141,43 +141,43 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 
 	private static boolean isValidContainer(ItemStack stack) {
 		return ItemWithInventoryHelper.canContainItems(stack) && ItemWithInventoryHelper.getRecursiveInventoryContents(stack).anyMatch(
-				PortableJukeboxEntity::isValidStack
+				BoomboxEntity::isValidStack
 		);
 	}
 
 	private static boolean isValidStack(ItemStack stack) {
-		return stack.is(Items.PORTABLE_JUKEBOX);
+		return stack.is(Items.BOOMBOX);
 	}
 
 	private static Runnable transferInternal(EntityRef from, EntityRef to, UUID toTransfer) {
 		if (from != null && to != null && from.get() == to.get()) return () -> {};
 		if (from != null) {
-			var jukebox = ((ServerLevel) from.getWorld()).getEntity(toTransfer);
-			if (!(jukebox instanceof PortableJukeboxEntity actualJukebox)) {
-				PortableJukebox.LOGGER.error(
+			var boombox = ((ServerLevel) from.getWorld()).getEntity(toTransfer);
+			if (!(boombox instanceof BoomboxEntity actualBoombox)) {
+				Boombox.LOGGER.error(
 						Optional.ofNullable(to).map(
 								EntityRef::getBackendName
-						).map(t -> "Unable to move jukebox sound source from " + from.getBackendName() + " to " + t).orElse(
-								"Unable to remove jukebox sound source from " + from.getBackendName()
+						).map(t -> "Unable to move boombox sound source from " + from.getBackendName() + " to " + t).orElse(
+								"Unable to remove boombox sound source from " + from.getBackendName()
 						)
 				);
 				return () -> {};
 			}
 			if (to != null) {
-				EntityRefHelper.addPortableJukebox(to, actualJukebox);
-				EntityRefHelper.removePortableJukebox(from, actualJukebox);
+				EntityRefHelper.addBoombox(to, actualBoombox);
+				EntityRefHelper.removeBoombox(from, actualBoombox);
 			} else {
-				return actualJukebox::discard;
+				return actualBoombox::discard;
 			}
 		}
 		return () -> {};
 	}
 
 	private static void transferSingle(EntityRef from, EntityRef to, ItemStack resultStack) {
-		PortableJukeboxEntityEntry.getWithoutInventories(resultStack).ifPresent(toTransfer -> {
+		BoomboxEntityEntry.getWithoutInventories(resultStack).ifPresent(toTransfer -> {
 			var after = transferInternal(from, to, toTransfer);
-			var jukebox = from.getWorld().getEntity(toTransfer);
-			if (jukebox instanceof PortableJukeboxEntity j) {
+			var boombox = from.getWorld().getEntity(toTransfer);
+			if (boombox instanceof BoomboxEntity j) {
 				j.fixStack(resultStack);
 			}
 			after.run();
@@ -201,52 +201,52 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 
 	public static void transfer2Way(EntityRef entity1, ItemStack stack1, EntityRef entity2, ItemStack stack2) {
 		if (isValidStack(stack1) || isValidContainer(stack1)) {
-			PortableJukeboxEntityEntry.get(stack1).forEach(toTransfer -> {
+			BoomboxEntityEntry.get(stack1).forEach(toTransfer -> {
 				transferInternal(entity1, entity2, toTransfer).run();
 			});
 		}
 		if (isValidStack(stack2) || isValidContainer(stack2)) {
-			PortableJukeboxEntityEntry.get(stack2).forEach(toTransfer -> {
+			BoomboxEntityEntry.get(stack2).forEach(toTransfer -> {
 				transferInternal(entity2, entity1, toTransfer).run();
 			});
 		}
 	}
 
-	private static Optional<EntityRef> getPortableJukeboxAttachmentNonRecursive(ItemStack stack, Level world) {
-		if (stack.has(Components.PORTABLE_JUKEBOX_ENTITY) && !world.isClientSide()) {
-			var entry = stack.get(Components.PORTABLE_JUKEBOX_ENTITY);
+	private static Optional<EntityRef> getBoomboxAttachmentNonRecursive(ItemStack stack, Level world) {
+		if (stack.has(Components.BOOMBOX_ENTITY) && !world.isClientSide()) {
+			var entry = stack.get(Components.BOOMBOX_ENTITY);
 			var e = world.getEntity(entry.entity());
-			if (e instanceof PortableJukeboxEntity jukebox) {
-				return jukebox.getConnectedEntity();
+			if (e instanceof BoomboxEntity boombox) {
+				return boombox.getConnectedEntity();
 			}
 		}
 		return Optional.empty();
 	}
 
-	public static Optional<EntityRef> getPortableJukeboxAttachment(ItemStack stack, Level world) {
-		var current = getPortableJukeboxAttachmentNonRecursive(stack, world);
+	public static Optional<EntityRef> getBoomboxAttachment(ItemStack stack, Level world) {
+		var current = getBoomboxAttachmentNonRecursive(stack, world);
 		if (current.isPresent()) return current;
 		//If it is an item with a container, all the items will have the same attachment, so it doesn't matter which one we take.
 		//We do not have to worry about components pointing to nonexistent entities, since they will return empty and therefore not be an option.
 		if (ItemWithInventoryHelper.canContainItems(stack)) {
 			return ItemWithInventoryHelper.getRecursiveInventoryContents(stack).flatMap(
-					content -> getPortableJukeboxAttachmentNonRecursive(content, world).stream()
+					content -> getBoomboxAttachmentNonRecursive(content, world).stream()
 			).findAny();
 		}
 		return Optional.empty();
 	}
 
 	public static void transferToItemFromUnknown(ItemStack stack, Level world, ItemEntity itemEntity) {
-		getPortableJukeboxAttachment(stack, world).ifPresent(entity -> {
-			PortableJukeboxEntity.transfer(
+		getBoomboxAttachment(stack, world).ifPresent(entity -> {
+			BoomboxEntity.transfer(
 					entity, EntityRef.fromEntity(itemEntity), itemEntity.getItem()
 			);
 		});
 	}
 
 	public static void transferToEntityFromUnknown(ItemStack stack, Entity entity) {
-		getPortableJukeboxAttachment(stack, entity.level()).ifPresent(music -> {
-			PortableJukeboxEntity.transfer(
+		getBoomboxAttachment(stack, entity.level()).ifPresent(music -> {
+			BoomboxEntity.transfer(
 					music, EntityRef.fromEntity(entity), stack
 			);
 		});
@@ -262,14 +262,14 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	public static void transferToInventory(EntityRef from, ItemStack stack, Container inventory) {
-		PortableJukeboxEntity.transfer(from, getFromInventory(inventory), stack);
+		BoomboxEntity.transfer(from, getFromInventory(inventory), stack);
 	}
 
 	public static void transferToInventoryFromUnknown(ItemStack stack, Container inventory) {
 		var world = InventoryHelper.getWorldFromInventory(inventory);
 		if (world.isEmpty()) return;
-		getPortableJukeboxAttachment(stack, world.get()).ifPresent(entity -> {
-			PortableJukeboxEntity.transfer(
+		getBoomboxAttachment(stack, world.get()).ifPresent(entity -> {
+			BoomboxEntity.transfer(
 					entity, getFromInventory(inventory), stack
 			);
 		});
@@ -293,9 +293,9 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	@Override
 	public void onEntityRemoved(RemovalReason reason) {
 		if (attachment != null) {
-			EntityRefHelper.removePortableJukebox(attachment, this);
+			EntityRefHelper.removeBoombox(attachment, this);
 		}
-		jukebox.remove(Components.PORTABLE_JUKEBOX_ENTITY);
+		boombox.remove(Components.BOOMBOX_ENTITY);
 		if (attachment != null) {
 			attachment.onUpdate();
 		}

@@ -10,7 +10,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity {
@@ -27,7 +27,7 @@ public abstract class LivingEntityMixin extends Entity {
 	protected void equipStack(
 			EquipmentSlot slot, ItemStack stack, CallbackInfo ci
 	) {
-		PortableJukeboxEntity.transferToEntityFromUnknown(stack, this);
+		BoomboxEntity.transferToEntityFromUnknown(stack, this);
 	}
 
 

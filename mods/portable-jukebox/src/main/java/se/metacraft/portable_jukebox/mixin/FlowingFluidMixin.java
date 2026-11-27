@@ -13,7 +13,7 @@ public class FlowingFluidMixin {
 
 	@ModifyReturnValue(method = "canHoldAnyFluid", at = @At("RETURN"))
 	private static boolean canHoldAnyFluid(boolean original, @Local(argsOnly = true) BlockState state) {
-		if (state.is(Blocks.PORTABLE_JUKEBOX)) {
+		if (state.is(Blocks.BOOMBOX)) {
 			return false;
 		}
 		return original;

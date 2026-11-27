@@ -9,7 +9,7 @@ import net.minecraft.world.item.component.BundleContents;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(BundleItem.class)
 public class BundleItemMixin {
@@ -26,7 +26,7 @@ public class BundleItemMixin {
 	) {
 		var bundleStacks = ((SimpleMutableContainerAccessor) builder).getItems();
 		if (!bundleStacks.isEmpty()) {
-			PortableJukeboxEntity.transferToInventory(
+			BoomboxEntity.transferToInventory(
 					EntityRef.fromEntity(player), bundleStacks.getFirst(), slot.container
 			);
 		}

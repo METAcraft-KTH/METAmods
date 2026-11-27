@@ -5,60 +5,60 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
-import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.Components;
 
-public class PortableJukeboxStorageInventory implements Container {
+public class BoomboxStorageInventory implements Container {
 
-	private final ItemStack portableJukebox;
+	private final ItemStack boombox;
 	private final Runnable onUpdate;
 
-	public PortableJukeboxStorageInventory(ItemStack portableJukebox, Runnable onUpdate) {
-		this.portableJukebox = portableJukebox;
+	public BoomboxStorageInventory(ItemStack boombox, Runnable onUpdate) {
+		this.boombox = boombox;
 		this.onUpdate = onUpdate;
 	}
 
 	@Override
 	public int getContainerSize() {
-		return portableJukebox.getOrDefault(Components.STORAGE_SIZE, 0);
+		return boombox.getOrDefault(Components.STORAGE_SIZE, 0);
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return PortableJukeboxItem.reStream(PortableJukeboxItem.getStorage(portableJukebox)).findAny().isEmpty();
+		return BoomboxItem.reStream(BoomboxItem.getStorage(boombox)).findAny().isEmpty();
 	}
 
 	@Override
 	public ItemStack getItem(int slot) {
-		var items = PortableJukeboxItem.getStorageList(portableJukebox);
+		var items = BoomboxItem.getStorageList(boombox);
 		if (slot >= items.size()) return ItemStack.EMPTY;
 		return items.get(slot);
 	}
 
 	@Override
 	public ItemStack removeItem(int slot, int amount) {
-		var items = PortableJukeboxItem.getStorageList(portableJukebox);
+		var items = BoomboxItem.getStorageList(boombox);
 		if (slot >= items.size()) return ItemStack.EMPTY;
 		var stack = items.get(slot).split(amount);
-		PortableJukeboxItem.setStorage(portableJukebox, ItemContainerContents.fromItems(items));
+		BoomboxItem.setStorage(boombox, ItemContainerContents.fromItems(items));
 		return stack;
 	}
 
 	@Override
 	public ItemStack removeItemNoUpdate(int slot) {
-		var items = PortableJukeboxItem.getStorageList(portableJukebox);
+		var items = BoomboxItem.getStorageList(boombox);
 		if (slot >= items.size()) return ItemStack.EMPTY;
 		var stack = items.set(slot, ItemStack.EMPTY);
-		PortableJukeboxItem.setStorage(portableJukebox, ItemContainerContents.fromItems(items));
+		BoomboxItem.setStorage(boombox, ItemContainerContents.fromItems(items));
 		return stack;
 	}
 
 	@Override
 	public void setItem(int slot, ItemStack stack) {
-		var items = PortableJukeboxItem.getStorageList(portableJukebox);
+		var items = BoomboxItem.getStorageList(boombox);
 		if (slot >= items.size()) return;
 		items.set(slot, stack);
-		PortableJukeboxItem.setStorage(portableJukebox, ItemContainerContents.fromItems(items));
+		BoomboxItem.setStorage(boombox, ItemContainerContents.fromItems(items));
 	}
 
 	@Override
@@ -78,7 +78,7 @@ public class PortableJukeboxStorageInventory implements Container {
 
 	@Override
 	public void clearContent() {
-		portableJukebox.remove(Components.PORTABLE_JUKEBOX_STORAGE);
+		boombox.remove(Components.BOOMBOX_STORAGE);
 	}
 
 	@Override

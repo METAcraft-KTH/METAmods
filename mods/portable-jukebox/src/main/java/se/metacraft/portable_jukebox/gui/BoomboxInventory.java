@@ -4,25 +4,25 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import se.metacraft.portable_jukebox.item.components.Components;
-import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
+import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
 
-public class PortableJukeboxInventory implements Container {
+public class BoomboxInventory implements Container {
 
-	private final ItemStack portableJukebox;
+	private final ItemStack boombox;
 	private final Runnable onUpdate;
 
-	public PortableJukeboxInventory(ItemStack portableJukebox, Runnable onUpdate) {
-		this.portableJukebox = portableJukebox;
+	public BoomboxInventory(ItemStack boombox, Runnable onUpdate) {
+		this.boombox = boombox;
 		this.onUpdate = onUpdate;
 	}
 
 	private ItemStack getStack() {
-		return portableJukebox.getOrDefault(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY).getItem();
+		return boombox.getOrDefault(Components.BOOMBOX, BoomboxInvData.EMPTY).getItem();
 	}
 
 	private ItemStack remove() {
-		var prev = portableJukebox.update(
-			Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY, jukebox -> jukebox.withItem(ItemStack.EMPTY)
+		var prev = boombox.update(
+			Components.BOOMBOX, BoomboxInvData.EMPTY, boombox -> boombox.withItem(ItemStack.EMPTY)
 		);
 		return prev != null ? prev.getItem() : ItemStack.EMPTY;
 	}
@@ -60,7 +60,7 @@ public class PortableJukeboxInventory implements Container {
 	@Override
 	public void setItem(int slot, ItemStack stack) {
 		if (!stack.isEmpty()) {
-			portableJukebox.update(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY, jukebox -> jukebox.withItem(stack));
+			boombox.update(Components.BOOMBOX, BoomboxInvData.EMPTY, boombox -> boombox.withItem(stack));
 		} else {
 			remove();
 		}
@@ -86,7 +86,7 @@ public class PortableJukeboxInventory implements Container {
 		return 1;
 	}
 
-	public ItemStack getJukebox() {
-		return portableJukebox;
+	public ItemStack getBoombox() {
+		return boombox;
 	}
 }

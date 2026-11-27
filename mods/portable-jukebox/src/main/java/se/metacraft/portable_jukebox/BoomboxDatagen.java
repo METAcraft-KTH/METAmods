@@ -25,7 +25,7 @@ import net.minecraft.world.level.storage.loot.providers.number.ints.ConstantValu
 import org.jspecify.annotations.NonNull;
 import se.metacraft.portable_jukebox.item.Items;
 import se.metacraft.portable_jukebox.item.components.Components;
-import se.metacraft.portable_jukebox.item.components.PortableJukeboxConfiguration;
+import se.metacraft.portable_jukebox.item.components.BoomboxConfiguration;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
+public class BoomboxDatagen implements DataGeneratorEntrypoint {
 
 	@Override
 	public void onInitializeDataGenerator(@NonNull FabricDataGenerator fabricDataGenerator) {
@@ -45,9 +45,9 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 	public static class EntityLootTableGen extends SimpleFabricLootTableSubProvider {
 
 		private static final int VOLUME_RESOLUTION = 5;
-		private static final int PITCH_RESOLUTION = 20;
+		private static final int SPEED_RESOLUTION = 20;
 
-		public static final ResourceKey<LootTable> PIGLIN_JUKEBOX_DROP = key("piglin_drop");
+		public static final ResourceKey<LootTable> PIGLIN_BOOMBOX_DROP = key("piglin_drop");
 
 		private final Map<ResourceKey<LootTable>, LootTable.Builder> map = new HashMap<>();
 
@@ -68,9 +68,9 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 			return (float) (minAmount + amount * Math.log10(currentRes+1) / Math.log10(maxRes+1));
 		}
 
-		private <T extends UniformContainerBase.Builder<T>> UniformContainerBase.Builder<T> applyJukeboxData(UniformContainerBase.Builder<T> builder) {
+		private <T extends UniformContainerBase.Builder<T>> UniformContainerBase.Builder<T> applyBoomboxData(UniformContainerBase.Builder<T> builder) {
 			return builder.apply(
-				SetContainerContents.setContents(Components.Manipulators.PORTABLE_JUKEBOX).withEntry(
+				SetContainerContents.setContents(Components.Manipulators.BOOMBOX).withEntry(
 					NestedLootTable.inlineLootTable(
 						LootTable.lootTable().withPool(
 							LootPool.lootPool().setRolls(
@@ -94,20 +94,20 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 			);
 		}
 
-		private void generateJukeboxes(
+		private void generateBoomboxes(
 			LootPool.Builder pool, int weightPerEntry, int qualityPerEntry
 		) {
 			for (int v = 0; v < VOLUME_RESOLUTION; v++) {
 				float volume = getAmountLinear(v, VOLUME_RESOLUTION, 0.5f, 1);
-				for (int p = 0; p < PITCH_RESOLUTION; p++) {
-					float pitch = getAmountLog10(p, PITCH_RESOLUTION, 0.5f, 2.0f);
+				for (int p = 0; p < SPEED_RESOLUTION; p++) {
+					float speed = getAmountLog10(p, SPEED_RESOLUTION, 0.5f, 2.0f);
 					var components = DataComponentPatch.builder().set(
-						Components.PORTABLE_JUKEBOX_CONFIGURATION,
-						new PortableJukeboxConfiguration(
-							volume, pitch
+						Components.BOOMBOX_CONFIGURATION,
+						new BoomboxConfiguration(
+							volume, speed
 						)
 					);
-					var builder = LootItem.lootTableItem(Items.PORTABLE_JUKEBOX).setWeight(weightPerEntry).setQuality(qualityPerEntry).apply(
+					var builder = LootItem.lootTableItem(Items.BOOMBOX).setWeight(weightPerEntry).setQuality(qualityPerEntry).apply(
 						Holder.direct(
 							new SetComponentsFunction(
 								Optional.empty(),
@@ -115,7 +115,7 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 							)
 						)
 					);
-					pool.add(applyJukeboxData(builder));
+					pool.add(applyBoomboxData(builder));
 				}
 			}
 		}
@@ -125,12 +125,12 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 			var pool = LootPool.lootPool().setRolls(
 				Holder.direct(new ConstantValue(1))
 			);
-			generateJukeboxes(pool,1, 1);
+			generateBoomboxes(pool,1, 1);
 			pool.add(
-				applyJukeboxData(
-					LootItem.lootTableItem(Items.PORTABLE_JUKEBOX).setQuality(
-						VOLUME_RESOLUTION*PITCH_RESOLUTION
-					).setWeight(VOLUME_RESOLUTION*PITCH_RESOLUTION)
+				applyBoomboxData(
+					LootItem.lootTableItem(Items.BOOMBOX).setQuality(
+						VOLUME_RESOLUTION*SPEED_RESOLUTION
+					).setWeight(VOLUME_RESOLUTION*SPEED_RESOLUTION)
 				)
 			);
 			pool.when(
@@ -139,11 +139,11 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 				)
 			);
 			table.withPool(pool);
-			add(PIGLIN_JUKEBOX_DROP, table);
+			add(PIGLIN_BOOMBOX_DROP, table);
 		}
 
 		private static ResourceKey<LootTable> key(String name) {
-			return ResourceKey.create(Registries.LOOT_TABLE, PortableJukebox.getID(name));
+			return ResourceKey.create(Registries.LOOT_TABLE, Boombox.getID(name));
 		}
 
 		private void add(ResourceKey<LootTable> key, LootTable.Builder lootTable) {

@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "portable-jukebox",
 	"version": "${version}",
-	"name": "PortableJukebox",
+	"name": "Boombox",
 	"description": "Portable jukeboxes that can play music while in your inventory",
 	"authors": [
 		"Acuadragon100"
@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.metacraft.portable_jukebox.PortableJukebox"
+			"se.metacraft.portable_jukebox.Boombox"
 		],
 		"fabric-datagen": [
-			"se.metacraft.portable_jukebox.PortableJukeboxDatagen"
+			"se.metacraft.portable_jukebox.BoomboxDatagen"
 		],
 		"fabric-gametest": [
 			"se.metacraft.portable_jukebox.gametest.DataFixTest"

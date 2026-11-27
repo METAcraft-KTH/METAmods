@@ -20,7 +20,7 @@ import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jspecify.annotations.NonNull;
 import se.metacraft.portable_jukebox.block.Blocks;
-import se.metacraft.portable_jukebox.block.PortableJukeboxBlockEntity;
+import se.metacraft.portable_jukebox.block.BoomboxBlockEntity;
 import se.metacraft.portable_jukebox.item.Items;
 import se.metacraft.portable_jukebox.item.components.Components;
 
@@ -55,16 +55,16 @@ public class DataFixTest implements CustomTestMethodInvoker {
 		}
 	}
 
-	private static void validateJukebox(GameTestHelper helper, ItemStack jukebox) {
-		if (jukebox.is(Items.PORTABLE_JUKEBOX)) {
-			var data = jukebox.get(Components.PORTABLE_JUKEBOX);
+	private static void validateBoombox(GameTestHelper helper, ItemStack boombox) {
+		if (boombox.is(Items.BOOMBOX)) {
+			var data = boombox.get(Components.BOOMBOX);
 			if (data == null || data.item().isEmpty()) {
 				helper.fail("Data went missing");
 				return;
 			}
 			validateItem(helper, data.item().get());
 
-			var storage = jukebox.get(Components.PORTABLE_JUKEBOX_STORAGE);
+			var storage = boombox.get(Components.BOOMBOX_STORAGE);
 			if (storage == null) {
 				helper.fail("Data went missing");
 				return;
@@ -95,16 +95,16 @@ public class DataFixTest implements CustomTestMethodInvoker {
 	}
 
 	@GameTest
-	public void jukeboxItem(GameTestHelper helper) {
+	public void boomboxItem(GameTestHelper helper) {
 		var stack = helper.getLevel().getServer().getFixerUpper().update(
 			References.ITEM_STACK, new Dynamic<>(
 				JavaOps.INSTANCE,
 				Map.of(
-					"id", Items.PORTABLE_JUKEBOX.builtInRegistryHolder().key().identifier().toString(),
+					"id", Items.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
 					"components", Map.of(
-						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX).toString(),
+						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX).toString(),
 						upgradableItem(),
-						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX_STORAGE).toString(),
+						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX_STORAGE).toString(),
 						upgradableSlots()
 					)
 				)
@@ -113,7 +113,7 @@ public class DataFixTest implements CustomTestMethodInvoker {
 			SharedConstants.getCurrentVersion().dataVersion().version()
 		);
 
-		validateJukebox(
+		validateBoombox(
 			helper,
 			ItemStack.CODEC.parse(
 				helper.getLevel().registryAccess().createSerializationContext(JavaOps.INSTANCE), stack.getValue()
@@ -123,18 +123,18 @@ public class DataFixTest implements CustomTestMethodInvoker {
 	}
 
 	@GameTest
-	public void jukeboxBlock(GameTestHelper helper) {
+	public void boomboxBlock(GameTestHelper helper) {
 		var data = helper.getLevel().getServer().getFixerUpper().update(
 			References.BLOCK_ENTITY, new Dynamic<>(
 				JavaOps.INSTANCE,
 				Map.of(
-					"id", Blocks.BlockEntities.PORTABLE_JUKEBOX.builtInRegistryHolder().key().identifier().toString(),
+					"id", Blocks.BlockEntities.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
 					"Jukebox", Map.of(
-						"id", Items.PORTABLE_JUKEBOX.builtInRegistryHolder().key().identifier().toString(),
+						"id", Items.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
 						"components", Map.of(
-							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX).toString(),
+							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX).toString(),
 							upgradableItem(),
-							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.PORTABLE_JUKEBOX_STORAGE).toString(),
+							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX_STORAGE).toString(),
 							upgradableSlots()
 						)
 					)
@@ -145,13 +145,13 @@ public class DataFixTest implements CustomTestMethodInvoker {
 		);
 
 		var blockEntity = BlockEntity.loadStatic(
-			BlockPos.ZERO, Blocks.PORTABLE_JUKEBOX.defaultBlockState(),
+			BlockPos.ZERO, Blocks.BOOMBOX.defaultBlockState(),
 			(CompoundTag) JavaOps.INSTANCE.convertTo(NbtOps.INSTANCE, data.getValue()),
 			helper.getLevel().registryAccess()
 		);
 
-		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
-			validateJukebox(helper, jukebox.getJukebox());
+		if (blockEntity instanceof BoomboxBlockEntity boombox) {
+			validateBoombox(helper, boombox.getBoombox());
 		} else {
 			helper.fail("Not a jukebox");
 		}

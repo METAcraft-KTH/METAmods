@@ -2,31 +2,31 @@ package se.metacraft.portable_jukebox.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
-import se.metacraft.portable_jukebox.data.HasPortableJukebox;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.data.HasBoombox;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 @Mixin(BlockEntity.class)
-public class BlockEntityMixin implements HasPortableJukebox {
+public class BlockEntityMixin implements HasBoombox {
 
 	@Unique
-	private final Set<PortableJukeboxEntity> jukeboxes = new HashSet<>();
+	private final Set<BoomboxEntity> boomboxes = new HashSet<>();
 
 	@Override
-	public void portable_jukebox$addPortableJukebox(PortableJukeboxEntity entity) {
-		this.jukeboxes.add(entity);
+	public void portable_jukebox$addBoombox(BoomboxEntity entity) {
+		this.boomboxes.add(entity);
 	}
 
 	@Override
-	public void portable_jukebox$removePortableJukebox(PortableJukeboxEntity entity) {
-		jukeboxes.remove(entity);
+	public void portable_jukebox$removeBoombox(BoomboxEntity entity) {
+		boomboxes.remove(entity);
 	}
 
 	@Override
-	public Set<PortableJukeboxEntity> portable_jukebox$getPortableJukeboxes() {
-		return jukeboxes;
+	public Set<BoomboxEntity> portable_jukebox$getBoomboxes() {
+		return boomboxes;
 	}
 }

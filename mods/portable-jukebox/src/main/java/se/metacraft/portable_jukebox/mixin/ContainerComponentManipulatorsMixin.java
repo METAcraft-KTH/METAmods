@@ -23,7 +23,7 @@ public interface ContainerComponentManipulatorsMixin {
 		//noinspection unchecked
 		return Stream.concat(
 			original, Stream.of(
-				(T) Components.Manipulators.PORTABLE_JUKEBOX, (T) Components.Manipulators.PORTABLE_JUKEBOX_STORAGE
+				(T) Components.Manipulators.BOOMBOX, (T) Components.Manipulators.BOOMBOX_STORAGE
 			)
 		);
 	}

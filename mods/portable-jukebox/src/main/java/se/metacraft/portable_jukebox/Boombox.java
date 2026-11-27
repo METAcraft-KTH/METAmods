@@ -10,7 +10,7 @@ import se.metacraft.portable_jukebox.block.Blocks;
 import se.metacraft.portable_jukebox.entity.Entities;
 import se.metacraft.portable_jukebox.item.Items;
 
-public class PortableJukebox implements ModInitializer {
+public class Boombox implements ModInitializer {
 
 	public static final String NAMESPACE = "portable_jukebox";
 

@@ -18,37 +18,37 @@ import net.minecraft.world.ticks.ContainerSingleItem;
 import org.jspecify.annotations.NonNull;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.lib.util.TaskScheduler;
-import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.Components;
-import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
+import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
 
-public class PortableJukeboxBlockEntity extends BlockEntity implements ContainerSingleItem.BlockContainerSingleItem {
+public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleItem.BlockContainerSingleItem {
 
-	private static final String JUKEBOX = "Jukebox"; //Careful, this is used by a datafixer!
+	private static final String BOOMBOX = "Jukebox"; //Careful, this is used by a datafixer!
 
-	private ItemStack jukebox = ItemStack.EMPTY;
+	private ItemStack boombox = ItemStack.EMPTY;
 
-	public PortableJukeboxBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+	public BoomboxBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
 	}
 
-	public PortableJukeboxBlockEntity(BlockPos pos, BlockState state) {
-		super(Blocks.BlockEntities.PORTABLE_JUKEBOX, pos, state);
+	public BoomboxBlockEntity(BlockPos pos, BlockState state) {
+		super(Blocks.BlockEntities.BOOMBOX, pos, state);
 	}
 
-	public void setJukebox(ItemStack jukebox) {
-		this.jukebox = jukebox;
+	public void setBoombox(ItemStack boombox) {
+		this.boombox = boombox;
 		fixModel();
 	}
 
-	public ItemStack getJukebox() {
-		return jukebox;
+	public ItemStack getBoombox() {
+		return boombox;
 	}
 
 	@Override
 	public void loadAdditional(ValueInput nbt) {
 		super.loadAdditional(nbt);
-		jukebox = nbt.read(JUKEBOX, ItemStack.CODEC).orElse(ItemStack.EMPTY);
+		boombox = nbt.read(BOOMBOX, ItemStack.CODEC).orElse(ItemStack.EMPTY);
 		fixModel();
 	}
 
@@ -61,14 +61,14 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements Container
 	}
 
 	private void fixModel() {
-		if (level == null || jukebox.isEmpty() || level.isClientSide()) return;
+		if (level == null || boombox.isEmpty() || level.isClientSide()) return;
 		var attachment = BlockBoundAttachment.get(level, getBlockPos());
 		if (attachment == null) return;
 		attachment.holder().getElements().stream().filter(
 			element -> element instanceof ItemDisplayElement
 		).findAny().ifPresent(element -> {
 			var e = ((ItemDisplayElement) element);
-			e.getItem().set(DataComponents.ITEM_MODEL, jukebox.get(DataComponents.ITEM_MODEL));
+			e.getItem().set(DataComponents.ITEM_MODEL, boombox.get(DataComponents.ITEM_MODEL));
 			e.getSyncedData().set(DisplayEntityData.Item.ITEM, e.getItem(), true);
 			var dirty = e.getSyncedData().getDirtyEntries();
 			if (dirty != null) {
@@ -82,8 +82,8 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements Container
 	@Override
 	public void saveAdditional(ValueOutput nbt) {
 		super.saveAdditional(nbt);
-		if (!jukebox.isEmpty()) {
-			nbt.store(JUKEBOX, ItemStack.CODEC, jukebox);
+		if (!boombox.isEmpty()) {
+			nbt.store(BOOMBOX, ItemStack.CODEC, boombox);
 		}
 	}
 
@@ -94,8 +94,8 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements Container
 
 	@Override
 	public ItemStack getTheItem() {
-		return jukebox.getOrDefault(
-			Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY
+		return boombox.getOrDefault(
+			Components.BOOMBOX, BoomboxInvData.EMPTY
 		).getItem();
 	}
 
@@ -114,12 +114,12 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements Container
 
 	@Override
 	public void setTheItem(ItemStack stack) {
-		var prev = this.jukebox.update(
-			Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY,
-			jukebox -> jukebox.withItem(stack)
+		var prev = this.boombox.update(
+			Components.BOOMBOX, BoomboxInvData.EMPTY,
+			boombox -> boombox.withItem(stack)
 		);
-		PortableJukeboxItem.updateStackChange(
-			EntityRef.fromBlock(this), prev != null ? prev.getItem() : ItemStack.EMPTY, jukebox
+		BoomboxItem.updateStackChange(
+			EntityRef.fromBlock(this), prev != null ? prev.getItem() : ItemStack.EMPTY, boombox
 		);
 	}
 

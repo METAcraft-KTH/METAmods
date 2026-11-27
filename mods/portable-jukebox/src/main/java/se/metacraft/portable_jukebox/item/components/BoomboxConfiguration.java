@@ -5,27 +5,27 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.Locale;
 
-public record PortableJukeboxConfiguration(float volume, float pitch) {
+public record BoomboxConfiguration(float volume, float speed) {
 
-	public static final PortableJukeboxConfiguration DEFAULT = new PortableJukeboxConfiguration(4, 1);
+	public static final BoomboxConfiguration DEFAULT = new BoomboxConfiguration(4, 1);
 
-	public static final Codec<PortableJukeboxConfiguration> CODEC = RecordCodecBuilder.create(
+	public static final Codec<BoomboxConfiguration> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					Codec.floatRange(0, Float.MAX_VALUE).optionalFieldOf("volume", 4.0f).forGetter(PortableJukeboxConfiguration::volume),
-					Codec.floatRange(0.5f, 2).optionalFieldOf("pitch", 1.0f).forGetter(PortableJukeboxConfiguration::pitch)
-			).apply(instance, PortableJukeboxConfiguration::new)
+					Codec.floatRange(0, Float.MAX_VALUE).optionalFieldOf("volume", 4.0f).forGetter(BoomboxConfiguration::volume),
+					Codec.floatRange(0.5f, 2).optionalFieldOf("pitch", 1.0f).forGetter(BoomboxConfiguration::speed)
+			).apply(instance, BoomboxConfiguration::new)
 	);
 
-	public PortableJukeboxConfiguration withVolume(float volume) {
-		return new PortableJukeboxConfiguration(volume, this.pitch);
+	public BoomboxConfiguration withVolume(float volume) {
+		return new BoomboxConfiguration(volume, this.speed);
 	}
 
-	public PortableJukeboxConfiguration withPitch(float pitch) {
-		return new PortableJukeboxConfiguration(this.volume, pitch);
+	public BoomboxConfiguration withSpeed(float speed) {
+		return new BoomboxConfiguration(this.volume, speed);
 	}
 
-	/** Pitch steps for the menu: 0.5x to 2.0x in steps of 0.1. Pitch is also the playback speed. */
-	private static final float[] PITCH_LEVELS = {
+	/** Speed steps for the menu: 0.5x to 2.0x in steps of 0.1. */
+	private static final float[] SPEED_LEVELS = {
 		0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f, 1.8f, 1.9f, 2.0f
 	};
 
@@ -39,19 +39,19 @@ public record PortableJukeboxConfiguration(float volume, float pitch) {
 
 	private static final float EPSILON = 0.001f;
 
-	public PortableJukeboxConfiguration pitchUp() {
-		return withPitch(next(PITCH_LEVELS, pitch));
+	public BoomboxConfiguration speedUp() {
+		return withSpeed(next(SPEED_LEVELS, speed));
 	}
 
-	public PortableJukeboxConfiguration pitchDown() {
-		return withPitch(previous(PITCH_LEVELS, pitch));
+	public BoomboxConfiguration speedDown() {
+		return withSpeed(previous(SPEED_LEVELS, speed));
 	}
 
-	public PortableJukeboxConfiguration volumeUp() {
+	public BoomboxConfiguration volumeUp() {
 		return withVolume(next(VOLUME_LEVELS, volume));
 	}
 
-	public PortableJukeboxConfiguration volumeDown() {
+	public BoomboxConfiguration volumeDown() {
 		return withVolume(previous(VOLUME_LEVELS, volume));
 	}
 
@@ -71,9 +71,9 @@ public record PortableJukeboxConfiguration(float volume, float pitch) {
 		return levels[0];
 	}
 
-	/** Pitch as a speed, e.g. "1.2x". */
-	public static String formatPitch(float pitch) {
-		return String.format(Locale.ROOT, "%.2fx", pitch).replaceFirst("0x$", "x");
+	/** E.g. "1.2x". */
+	public static String formatSpeed(float speed) {
+		return String.format(Locale.ROOT, "%.2fx", speed).replaceFirst("0x$", "x");
 	}
 
 	/** Loudness as a percentage, capped at 100% (more volume only adds range). */

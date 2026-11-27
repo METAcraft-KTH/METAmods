@@ -8,12 +8,12 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
-import se.metacraft.portable_jukebox.PortableJukebox;
+import se.metacraft.portable_jukebox.Boombox;
 
 public class Entities {
 
-	public static final EntityType<PortableJukeboxEntity> PORTABLE_JUKEBOX = register(
-			"portable_jukebox", EntityType.Builder.of(PortableJukeboxEntity::new, MobCategory.MISC)
+	public static final EntityType<BoomboxEntity> BOOMBOX = register(
+			"portable_jukebox", EntityType.Builder.of(BoomboxEntity::new, MobCategory.MISC)
 					.sized(0, 0).noSummon().noSave().clientTrackingRange(8)
 	);
 
@@ -22,7 +22,7 @@ public class Entities {
 	}
 
 	private static <T extends Entity> EntityType<T> register(String id, EntityType.Builder<T> entity) {
-		var key = ResourceKey.create(Registries.ENTITY_TYPE, PortableJukebox.getID(id));
+		var key = ResourceKey.create(Registries.ENTITY_TYPE, Boombox.getID(id));
 		var type = entity.build(key);
 		PolymerEntityUtils.registerType(type);
 		return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, type);

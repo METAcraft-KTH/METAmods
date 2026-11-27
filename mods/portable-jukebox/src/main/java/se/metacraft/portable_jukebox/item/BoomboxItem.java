@@ -26,18 +26,18 @@ import se.metacraft.portable_jukebox.block.Blocks;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.entity.Entities;
-import se.metacraft.portable_jukebox.gui.PortableJukeboxGui;
-import se.metacraft.portable_jukebox.item.components.PortableJukeboxInvData;
+import se.metacraft.portable_jukebox.gui.BoomboxGui;
+import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class PortableJukeboxItem extends BlockItem implements PolymerItem {
+public class BoomboxItem extends BlockItem implements PolymerItem {
 
-	public PortableJukeboxItem(Item.Properties settings) {
-		super(Blocks.PORTABLE_JUKEBOX, settings);
+	public BoomboxItem(Item.Properties settings) {
+		super(Blocks.BOOMBOX, settings);
 	}
 
 	@Override
@@ -52,17 +52,17 @@ public class PortableJukeboxItem extends BlockItem implements PolymerItem {
 
 	public static void play(ItemStack stack, EntityRef entity) {
 		stop(stack, (ServerLevel) entity.getWorld());
-		var jukeboxPlayer = Entities.PORTABLE_JUKEBOX.create(entity.getWorld(), EntitySpawnReason.TRIGGERED);
+		var boomboxPlayer = Entities.BOOMBOX.create(entity.getWorld(), EntitySpawnReason.TRIGGERED);
 		var pos = entity.getPos();
-		jukeboxPlayer.setPosRaw(pos.x(), pos.y(), pos.z());
-		jukeboxPlayer.setConnectedEntity(entity);
-		entity.getWorld().addFreshEntity(jukeboxPlayer);
-		jukeboxPlayer.setJukebox(stack);
-		EntityRefHelper.addPortableJukebox(entity, jukeboxPlayer);
+		boomboxPlayer.setPosRaw(pos.x(), pos.y(), pos.z());
+		boomboxPlayer.setConnectedEntity(entity);
+		entity.getWorld().addFreshEntity(boomboxPlayer);
+		boomboxPlayer.setBoombox(stack);
+		EntityRefHelper.addBoombox(entity, boomboxPlayer);
 	}
 
 	public static void stop(ItemStack stack, ServerLevel world) {
-		Optional.ofNullable(stack.get(Components.PORTABLE_JUKEBOX_ENTITY)).ifPresent(entityEntry -> {
+		Optional.ofNullable(stack.get(Components.BOOMBOX_ENTITY)).ifPresent(entityEntry -> {
 			var entity = world.getEntity(entityEntry.entity());
 			if (entity != null) {
 				entity.discard();
@@ -74,7 +74,7 @@ public class PortableJukeboxItem extends BlockItem implements PolymerItem {
 	public InteractionResult use(Level world, Player user, InteractionHand hand) {
 		var stack = user.getItemInHand(hand);
 		if (!world.isClientSide()) {
-			var gui = PortableJukeboxGui.create((ServerPlayer) user, stack, EntityRef.fromEntity(user));
+			var gui = BoomboxGui.create((ServerPlayer) user, stack, EntityRef.fromEntity(user));
 			gui.open();
 			return InteractionResult.SUCCESS;
 		}
@@ -84,7 +84,7 @@ public class PortableJukeboxItem extends BlockItem implements PolymerItem {
 	@Override
 	public void onDestroyed(ItemEntity entity) {
 		super.onDestroyed(entity);
-		Optional.ofNullable(entity.getItem().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
+		Optional.ofNullable(entity.getItem().get(Components.BOOMBOX)).ifPresent(disc -> {
 			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc.getItem());
 		});
 		for (var stored : getStorage(entity.getItem()).nonEmptyItems()) {
@@ -104,42 +104,42 @@ public class PortableJukeboxItem extends BlockItem implements PolymerItem {
 		return StreamSupport.stream(items.nonEmptyItems().spliterator(), false);
 	}
 
-	public static ItemContainerContents getStorage(ItemStack jukebox) {
-		return jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_STORAGE, ItemContainerContents.EMPTY);
+	public static ItemContainerContents getStorage(ItemStack boombox) {
+		return boombox.getOrDefault(Components.BOOMBOX_STORAGE, ItemContainerContents.EMPTY);
 	}
 
-	public static NonNullList<ItemStack> getStorageList(ItemStack jukebox) {
+	public static NonNullList<ItemStack> getStorageList(ItemStack boombox) {
 		NonNullList<ItemStack> list = NonNullList.withSize(
-			jukebox.getOrDefault(Components.STORAGE_SIZE, 0),
+			boombox.getOrDefault(Components.STORAGE_SIZE, 0),
 			ItemStack.EMPTY
 		);
-		getStorage(jukebox).copyInto(list);
+		getStorage(boombox).copyInto(list);
 		return list;
 	}
 
-	public static void setStorage(ItemStack jukebox, ItemContainerContents items) {
+	public static void setStorage(ItemStack boombox, ItemContainerContents items) {
 		if (reStream(items).findAny().isEmpty()) {
-			jukebox.remove(Components.PORTABLE_JUKEBOX_STORAGE);
+			boombox.remove(Components.BOOMBOX_STORAGE);
 		} else {
-			jukebox.set(Components.PORTABLE_JUKEBOX_STORAGE, items);
+			boombox.set(Components.BOOMBOX_STORAGE, items);
 		}
 	}
 
-	public static Optional<ItemStack> getDiscFromJukebox(ItemInstance stack) {
-		return stack.getOrDefault(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY).getNonEmptyItem();
+	public static Optional<ItemStack> getDiscFromBoombox(ItemInstance stack) {
+		return stack.getOrDefault(Components.BOOMBOX, BoomboxInvData.EMPTY).getNonEmptyItem();
 	}
 
-	public static Optional<Holder<JukeboxSong>> getSongFromJukebox(ItemInstance stack) {
-		return getDiscFromJukebox(stack).flatMap(JukeboxSong::fromStack);
+	public static Optional<Holder<JukeboxSong>> getSongFromBoombox(ItemInstance stack) {
+		return getDiscFromBoombox(stack).flatMap(JukeboxSong::fromStack);
 	}
 
 	public static int getComparatorOutput(ItemStack stack) {
-		return getSongFromJukebox(stack).map(song -> song.value().comparatorOutput()).orElse(0);
+		return getSongFromBoombox(stack).map(song -> song.value().comparatorOutput()).orElse(0);
 	}
 
 	public static void updateStackChange(EntityRef entity, ItemStack prevDisc, ItemStack stack) {
-		if (stack.has(Components.PORTABLE_JUKEBOX_ENTITY)) {
-			var currentSong = getSongFromJukebox(stack);
+		if (stack.has(Components.BOOMBOX_ENTITY)) {
+			var currentSong = getSongFromBoombox(stack);
 			if (
 					currentSong.isPresent() &&
 					!JukeboxSong.fromStack(prevDisc).equals(currentSong)
@@ -151,7 +151,7 @@ public class PortableJukeboxItem extends BlockItem implements PolymerItem {
 
 	public static void updateRedstone(EntityRef entity, ItemStack stack) {
 		if (entity.isReceivingRedstonePower()) {
-			if (!stack.has(Components.PORTABLE_JUKEBOX_ENTITY)) {
+			if (!stack.has(Components.BOOMBOX_ENTITY)) {
 				play(stack, entity);
 			}
 		}

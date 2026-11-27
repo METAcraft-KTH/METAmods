@@ -12,7 +12,7 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(ItemFrame.class)
 public abstract class ItemFrameMixin {
@@ -29,7 +29,7 @@ public abstract class ItemFrameMixin {
 	public void interact(
 			Player player, InteractionHand hand, Vec3 location, CallbackInfoReturnable<InteractionResult> cir
 	) {
-		PortableJukeboxEntity.transfer(
+		BoomboxEntity.transfer(
 				EntityRef.fromEntity(player),
 				EntityRef.fromEntity((ItemFrame) (Object) this),
 				this.getItem()

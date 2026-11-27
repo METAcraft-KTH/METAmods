@@ -11,8 +11,8 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.block.PortableJukeboxBlock;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.block.BoomboxBlock;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(BlockItem.class)
 public abstract class BlockItemMixin {
@@ -27,12 +27,12 @@ public abstract class BlockItemMixin {
 		)
 	)
 	public void onPlaced(BlockPlaceContext context, CallbackInfoReturnable<InteractionResult> cir) {
-		if (this.getBlock() instanceof PortableJukeboxBlock) return;
+		if (this.getBlock() instanceof BoomboxBlock) return;
 		if (!(this.getBlock() instanceof EntityBlock)) return;
 		if (context.getPlayer() != null) {
 			var blockEntity = context.getLevel().getBlockEntity(context.getClickedPos());
 			if (blockEntity != null) {
-				PortableJukeboxEntity.transfer(
+				BoomboxEntity.transfer(
 						EntityRef.fromEntity(context.getPlayer()), EntityRef.fromBlock(blockEntity), context.getItemInHand()
 				);
 			}

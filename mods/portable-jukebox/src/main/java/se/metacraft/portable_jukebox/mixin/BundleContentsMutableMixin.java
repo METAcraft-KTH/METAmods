@@ -8,7 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.component.BundleContents;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(BundleContents.Mutable.class)
 public class BundleContentsMutableMixin {
@@ -22,7 +22,7 @@ public class BundleContentsMutableMixin {
 	) {
 		var bundleStacks = ((SimpleMutableContainerAccessor) this).getItems();
 		if (!bundleStacks.isEmpty()) {
-			PortableJukeboxEntity.transferToInventory(
+			BoomboxEntity.transferToInventory(
 					EntityRef.fromEntity(player), bundleStacks.getFirst(), slot.container
 			);
 		}

@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import org.jspecify.annotations.NonNull;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
+import se.metacraft.portable_jukebox.item.BoomboxItem;
 
 import java.util.OptionalInt;
 
@@ -31,29 +31,29 @@ public enum Autoplay implements StringRepresentable {
 		return id;
 	}
 
-	public static void turnOff(ItemStack jukebox) {
-		jukebox.remove(Components.AUTOPLAY);
+	public static void turnOff(ItemStack boombox) {
+		boombox.remove(Components.AUTOPLAY);
 	}
 
 	/** Turns shuffle on and plays a random disc. Does nothing below the shuffle tier or with no discs at all. */
-	public void start(ItemStack jukebox, EntityRef playFrom, RandomSource random) {
-		if (!pickNext(jukebox, random)) return;
-		jukebox.set(Components.AUTOPLAY, this);
-		PortableJukeboxItem.play(jukebox, playFrom);
+	public void start(ItemStack boombox, EntityRef playFrom, RandomSource random) {
+		if (!pickNext(boombox, random)) return;
+		boombox.set(Components.AUTOPLAY, this);
+		BoomboxItem.play(boombox, playFrom);
 	}
 
 	/**
 	 * A song has just ended: if shuffle is on, play the next random disc and return true.
-	 * Returns false when shuffle is off (or can't go on), and the jukebox should stop as usual.
+	 * Returns false when shuffle is off (or can't go on), and the boombox should stop as usual.
 	 */
-	public static boolean playNext(ItemStack jukebox, EntityRef playFrom, RandomSource random) {
-		var autoplay = jukebox.get(Components.AUTOPLAY);
+	public static boolean playNext(ItemStack boombox, EntityRef playFrom, RandomSource random) {
+		var autoplay = boombox.get(Components.AUTOPLAY);
 		if (autoplay == null) return false;
-		if (!autoplay.pickNext(jukebox, random)) {
-			turnOff(jukebox);
+		if (!autoplay.pickNext(boombox, random)) {
+			turnOff(boombox);
 			return false;
 		}
-		PortableJukeboxItem.play(jukebox, playFrom);
+		BoomboxItem.play(boombox, playFrom);
 		return true;
 	}
 
@@ -87,19 +87,19 @@ public enum Autoplay implements StringRepresentable {
 		}
 	}
 
-	private boolean pickNext(ItemStack jukebox, RandomSource random) {
-		var storage = PortableJukeboxItem.getStorageList(jukebox);
-		var current = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY).getItem();
-		var currentSlot = jukebox.get(Components.CURRENT_SLOT);
+	private boolean pickNext(ItemStack boombox, RandomSource random) {
+		var storage = BoomboxItem.getStorageList(boombox);
+		var current = boombox.getOrDefault(Components.BOOMBOX, BoomboxInvData.EMPTY).getItem();
+		var currentSlot = boombox.get(Components.CURRENT_SLOT);
 		OptionalInt slot = pickSlot(storage, currentSlot != null ? OptionalInt.of(currentSlot) : OptionalInt.empty(), random);
 
 		if (slot.isPresent()) {
 			var next = storage.get(slot.getAsInt()).copy();
 			storage.set(slot.getAsInt(), current.copy());
 
-			PortableJukeboxItem.setStorage(jukebox, ItemContainerContents.fromItems(storage));
-			jukebox.update(Components.PORTABLE_JUKEBOX, PortableJukeboxInvData.EMPTY, inv -> inv.withItem(next));
-			jukebox.set(Components.CURRENT_SLOT, slot.getAsInt());
+			BoomboxItem.setStorage(boombox, ItemContainerContents.fromItems(storage));
+			boombox.update(Components.BOOMBOX, BoomboxInvData.EMPTY, inv -> inv.withItem(next));
+			boombox.set(Components.CURRENT_SLOT, slot.getAsInt());
 			return true;
 		}
 

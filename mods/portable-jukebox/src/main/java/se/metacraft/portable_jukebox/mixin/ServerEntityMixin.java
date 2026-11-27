@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(ServerEntity.class)
 public class ServerEntityMixin {
@@ -24,7 +24,7 @@ public class ServerEntityMixin {
 		)
 	)
 	public boolean startTracking(ServerGamePacketListenerImpl instance, Packet packet) {
-		return !(entity instanceof PortableJukeboxEntity);
+		return !(entity instanceof BoomboxEntity);
 	}
 
 	@WrapWithCondition(
@@ -35,7 +35,7 @@ public class ServerEntityMixin {
 			)
 	)
 	public boolean stopTracking(ServerGamePacketListenerImpl instance, Packet packet) {
-		return !(entity instanceof PortableJukeboxEntity);
+		return !(entity instanceof BoomboxEntity);
 	}
 
 }

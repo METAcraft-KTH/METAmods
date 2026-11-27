@@ -41,20 +41,20 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.item.PortableJukeboxItem;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
-import se.metacraft.portable_jukebox.gui.PortableJukeboxGui;
+import se.metacraft.portable_jukebox.item.BoomboxItem;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
+import se.metacraft.portable_jukebox.gui.BoomboxGui;
 import se.metacraft.portable_jukebox.mixin.SkullBlockAccessor;
 
 import java.util.List;
 
-public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerTexturedBlock, BlockWithElementHolder {
+public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBlock, BlockWithElementHolder {
 
 	public static final IntegerProperty ROTATION = SkullBlock.ROTATION;
 
 	private final BlockState state;
 
-	public PortableJukeboxBlock(Properties settings) {
+	public BoomboxBlock(Properties settings) {
 		super(settings);
 		registerDefaultState(stateDefinition.any().setValue(ROTATION, 0));
 		this.state = PolymerBlockResourceUtils.requestEmpty(BlockModelType.CAMPFIRE);
@@ -111,10 +111,10 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 	public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
 		super.setPlacedBy(world, pos, state, placer, itemStack);
 		var blockEntity = world.getBlockEntity(pos);
-		if (blockEntity instanceof PortableJukeboxBlockEntity b && placer != null) {
-			b.setJukebox(itemStack.copy());
-			PortableJukeboxEntity.transfer(
-					EntityRef.fromEntity(placer), EntityRef.fromBlock(b), b.getJukebox()
+		if (blockEntity instanceof BoomboxBlockEntity b && placer != null) {
+			b.setBoombox(itemStack.copy());
+			BoomboxEntity.transfer(
+					EntityRef.fromEntity(placer), EntityRef.fromBlock(b), b.getBoombox()
 			);
 		}
 	}
@@ -122,8 +122,8 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
 		var block = world.getBlockEntity(pos);
-		if (block instanceof PortableJukeboxBlockEntity jukebox) {
-			var gui = PortableJukeboxGui.create((ServerPlayer) player, jukebox.getJukebox(), EntityRef.fromBlock(jukebox));
+		if (block instanceof BoomboxBlockEntity boombox) {
+			var gui = BoomboxGui.create((ServerPlayer) player, boombox.getBoombox(), EntityRef.fromBlock(boombox));
 			gui.open();
 			return InteractionResult.SUCCESS;
 		}
@@ -133,8 +133,8 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 	@Override
 	protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
 		BlockEntity blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
-		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
-			return List.of(jukebox.getJukebox());
+		if (blockEntity instanceof BoomboxBlockEntity boombox) {
+			return List.of(boombox.getBoombox());
 		}
 		return super.getDrops(state, builder);
 	}
@@ -143,7 +143,7 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel world, BlockPos pos, boolean moved) {
 		BlockEntity blockEntity = world.getBlockEntity(pos);
 		super.affectNeighborsAfterRemoval(state, world, pos, moved);
-		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
+		if (blockEntity instanceof BoomboxBlockEntity boombox) {
 			world.updateNeighbourForOutputSignal(pos, state.getBlock());
 		}
 	}
@@ -151,7 +151,7 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 	@Nullable
 	@Override
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-		return new PortableJukeboxBlockEntity(pos, state);
+		return new BoomboxBlockEntity(pos, state);
 	}
 
 	@Override
@@ -162,8 +162,8 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 	@Override
 	protected int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos, Direction direction) {
 		var blockEntity = world.getBlockEntity(pos);
-		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
-			return PortableJukeboxItem.getComparatorOutput(portable.getJukebox());
+		if (blockEntity instanceof BoomboxBlockEntity portable) {
+			return BoomboxItem.getComparatorOutput(portable.getBoombox());
 		}
 		return 0;
 	}
@@ -174,8 +174,8 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerText
 			Orientation orientation, boolean notify
 	) {
 		var blockEntity = world.getBlockEntity(pos);
-		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
-			PortableJukeboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getJukebox());
+		if (blockEntity instanceof BoomboxBlockEntity portable) {
+			BoomboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getBoombox());
 		}
 	}
 

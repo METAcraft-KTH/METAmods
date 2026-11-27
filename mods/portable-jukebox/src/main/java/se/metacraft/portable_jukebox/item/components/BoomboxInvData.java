@@ -14,19 +14,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record PortableJukeboxInvData(Optional<ItemStackTemplate> item) implements ContainerComponent<PortableJukeboxInvData> {
+public record BoomboxInvData(Optional<ItemStackTemplate> item) implements ContainerComponent<BoomboxInvData> {
 
-	public static final PortableJukeboxInvData EMPTY = new PortableJukeboxInvData(Optional.empty());
+	public static final BoomboxInvData EMPTY = new BoomboxInvData(Optional.empty());
 
-	public static final Codec<PortableJukeboxInvData> CODEC = Codec.either(
+	public static final Codec<BoomboxInvData> CODEC = Codec.either(
 		ItemStackTemplate.CODEC.xmap(
-			stack -> new PortableJukeboxInvData(Optional.of(stack)),
+			stack -> new BoomboxInvData(Optional.of(stack)),
 			inv -> inv.item.orElseThrow()
 		),
 		MapCodec.unitCodec(EMPTY)
 	).xmap(
 		either -> either.map(l -> l, r -> r),
-		inv -> inv.item().map(i -> Either.<PortableJukeboxInvData, PortableJukeboxInvData>left(inv)).orElse(Either.right(EMPTY))
+		inv -> inv.item().map(i -> Either.<BoomboxInvData, BoomboxInvData>left(inv)).orElse(Either.right(EMPTY))
 	);
 
 	@Override
@@ -40,17 +40,17 @@ public record PortableJukeboxInvData(Optional<ItemStackTemplate> item) implement
 	}
 
 	@Override
-	public @NonNull PortableJukeboxInvData copyWithContents(@NonNull Stream<ItemStack> newContents) {
-		return new PortableJukeboxInvData(newContents.findAny().map(ItemStackTemplate::fromStack));
+	public @NonNull BoomboxInvData copyWithContents(@NonNull Stream<ItemStack> newContents) {
+		return new BoomboxInvData(newContents.findAny().map(ItemStackTemplate::fromStack));
 	}
 
 	@Override
-	public @NonNull MutableJukebox asMutable() {
-		return new MutableJukebox(item.stream().map(ItemStackTemplate::create).toList());
+	public @NonNull MutableBoombox asMutable() {
+		return new MutableBoombox(item.stream().map(ItemStackTemplate::create).toList());
 	}
 
-	public PortableJukeboxInvData withItem(ItemStack item) {
-		return new PortableJukeboxInvData(item.isEmpty() ? Optional.empty() : Optional.of(ItemStackTemplate.fromNonEmptyStack(item)));
+	public BoomboxInvData withItem(ItemStack item) {
+		return new BoomboxInvData(item.isEmpty() ? Optional.empty() : Optional.of(ItemStackTemplate.fromNonEmptyStack(item)));
 	}
 
 	public ItemStack getItem() {
@@ -61,9 +61,9 @@ public record PortableJukeboxInvData(Optional<ItemStackTemplate> item) implement
 		return item.map(ItemStackTemplate::create);
 	}
 
-	public static class MutableJukebox extends GrowableMutableContainer<PortableJukeboxInvData> {
+	public static class MutableBoombox extends GrowableMutableContainer<BoomboxInvData> {
 
-		public MutableJukebox(List<ItemStack> items) {
+		public MutableBoombox(List<ItemStack> items) {
 			super(items);
 		}
 
@@ -79,8 +79,8 @@ public record PortableJukeboxInvData(Optional<ItemStackTemplate> item) implement
 		}
 
 		@Override
-		public @NonNull PortableJukeboxInvData toImmutable() {
-			return new PortableJukeboxInvData(items.stream().filter(i -> !i.isEmpty()).map(s -> s.copyWithCount(1)).findAny().map(ItemStackTemplate::fromStack));
+		public @NonNull BoomboxInvData toImmutable() {
+			return new BoomboxInvData(items.stream().filter(i -> !i.isEmpty()).map(s -> s.copyWithCount(1)).findAny().map(ItemStackTemplate::fromStack));
 		}
 	}
 }

@@ -7,9 +7,9 @@ import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.NestedLootTable;
 import net.minecraft.world.level.storage.loot.providers.number.ints.ConstantValue;
 import se.metacraft.nether_rifts.mob.RiftEntities;
-import se.metacraft.portable_jukebox.PortableJukeboxDatagen;
+import se.metacraft.portable_jukebox.BoomboxDatagen;
 
-public class JukeboxCompat {
+public class BoomboxCompat {
 
 	public static void init() {
 		LootTableEvents.MODIFY.register((key, tableBuilder, source, holder) -> {
@@ -21,7 +21,7 @@ public class JukeboxCompat {
 				tableBuilder.withPool(
 					LootPool.lootPool().setRolls(Holder.direct(new ConstantValue(1))).add(
 						NestedLootTable.lootTableReference(holder.getOrThrow(
-							PortableJukeboxDatagen.EntityLootTableGen.PIGLIN_JUKEBOX_DROP
+							BoomboxDatagen.EntityLootTableGen.PIGLIN_BOOMBOX_DROP
 						))
 					)
 				);
