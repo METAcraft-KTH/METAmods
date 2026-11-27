@@ -24,7 +24,7 @@
 	"portable_jukebox.gui.range.down": "Lower range",
 	"portable_jukebox.gui.range.up": "Raise range",
 	"portable_jukebox.gui.speed": "Speed: %s",
-	"portable_jukebox.gui.speed.description": "Faster is also higher, slower is also lower",
+	"portable_jukebox.gui.speed.description": "Faster = higher pitch, slower = lower pitch",
 	"portable_jukebox.gui.speed.down": "Slower",
 	"portable_jukebox.gui.speed.up": "Faster",
 	"portable_jukebox.gui.reset": "Click to reset",
