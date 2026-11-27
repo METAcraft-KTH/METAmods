@@ -41,7 +41,6 @@ public class DiscordChatFixer implements ModInitializer {
 			if (CoreCompat.isMETAcraftPlayer(source.getEntity())) {
 				return Optional.of(CoreCompat.getFromMETAcraftPlayer(source.getEntity()));
 			}
-			System.out.println("2");
 		}
 		return Optional.empty();
 	}
