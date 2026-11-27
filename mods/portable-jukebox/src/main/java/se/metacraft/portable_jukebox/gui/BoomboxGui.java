@@ -57,6 +57,8 @@ public class BoomboxGui extends LayeredGui {
 	private static final int SPEED_MINUS_COLUMN = 7;
 	private static final int SPEED_PLUS_COLUMN = 8;
 
+	public static final int MAX_STORAGE_SIZE = 36;
+
 	/** Ticks after the last speed or volume click before a playing song restarts with the new sound. */
 	private static final int RESTART_DELAY = 15;
 

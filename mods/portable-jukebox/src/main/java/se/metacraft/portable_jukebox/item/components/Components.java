@@ -12,6 +12,7 @@ import java.util.function.UnaryOperator;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
+import se.metacraft.portable_jukebox.gui.BoomboxGui;
 
 public class Components {
 
@@ -29,7 +30,7 @@ public class Components {
 	);
 
 	public static final DataComponentType<Integer> STORAGE_SIZE = register(
-		"storage_size", component -> component.persistent(Codec.intRange(0, ItemContainerContents.MAX_SIZE))
+		"storage_size", component -> component.persistent(Codec.intRange(0, BoomboxGui.MAX_STORAGE_SIZE))
 	);
 
 	public static final DataComponentType<Unit> SHUFFLE_TOGGLE = register(
