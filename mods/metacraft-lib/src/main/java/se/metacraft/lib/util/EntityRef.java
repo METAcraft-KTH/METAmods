@@ -5,6 +5,7 @@ import java.util.function.UnaryOperator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -87,6 +88,11 @@ public interface EntityRef {
 		public EntityRef map(UnaryOperator<Entity> entityModifier, UnaryOperator<BlockEntity> blockModifier) {
 			return mapEntity(entityModifier);
 		}
+
+		@Override
+		public RandomSource getRandom() {
+			return entity.getRandom();
+		}
 	}
 
 	public static final class B implements EntityRef {
@@ -139,6 +145,13 @@ public interface EntityRef {
 		@Override
 		public Object get() {
 			return blockEntity;
+		}
+
+		@Override
+		public RandomSource getRandom() {
+			return Optional.ofNullable(blockEntity.getLevel()).map(Level::getRandom).orElseGet(
+				RandomSource::create
+			);
 		}
 
 		@Override
@@ -210,6 +223,8 @@ public interface EntityRef {
 		}
 		return Optional.empty();
 	}
+
+	public RandomSource getRandom();
 
 	public abstract EntityRef mapEntity(UnaryOperator<Entity> entityModifier);
 	public abstract EntityRef mapBlock(UnaryOperator<BlockEntity> blockModifier);

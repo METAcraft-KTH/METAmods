@@ -25,6 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.block.BoomboxBlocks;
+import se.metacraft.portable_jukebox.item.components.Autoplay;
 import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.EntityRefHelper;
 import se.metacraft.portable_jukebox.entity.BoomboxEntities;
@@ -123,8 +124,12 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 		return playable != null ? playable.song().value().description() : disc.getHoverName();
 	}
 
+	public static boolean hasDiscsInStorage(ItemStack boombox) {
+		return reStream(getStorage(boombox)).findAny().isPresent();
+	}
+
 	public static boolean hasDiscs(ItemStack boombox) {
-		return getDiscFromBoombox(boombox).isPresent() || reStream(getStorage(boombox)).findAny().isPresent();
+		return getDiscFromBoombox(boombox).isPresent() || hasDiscsInStorage(boombox);
 	}
 
 	public static Stream<ItemStackTemplate> reStream(ItemContainerContents items) {
@@ -178,8 +183,10 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 
 	public static void updateRedstone(EntityRef entity, ItemStack stack) {
 		if (entity.isReceivingRedstonePower()) {
-			if (!stack.has(BoomboxComponents.BOOMBOX_ENTITY)) {
+			if (!stack.has(BoomboxComponents.BOOMBOX_ENTITY) && BoomboxItem.getDiscFromBoombox(stack).isPresent()) {
 				play(stack, entity);
+			} else if (BoomboxItem.hasDiscsInStorage(stack)) {
+				Autoplay.playFromStorage(stack, entity, entity.getRandom());
 			}
 		}
 	}

@@ -32,6 +32,8 @@ import net.minecraft.world.level.block.SkullBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.RotationSegment;
 import net.minecraft.world.level.redstone.Orientation;
@@ -43,6 +45,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.jspecify.annotations.NonNull;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
@@ -54,6 +57,7 @@ import java.util.List;
 public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBlock, BlockWithElementHolder {
 
 	public static final IntegerProperty ROTATION = SkullBlock.ROTATION;
+	public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
 
 	private static final VoxelShape SHAPE = Block.column(16.0, 0.0, 8.0);
 
@@ -61,13 +65,13 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 
 	public BoomboxBlock(Properties settings) {
 		super(settings);
-		registerDefaultState(stateDefinition.any().setValue(ROTATION, 0));
+		registerDefaultState(stateDefinition.any().setValue(ROTATION, 0).setValue(TRIGGERED, false));
 		this.clientState = PolymerBlockResourceUtils.requestEmpty(BlockModelType.TRIPWIRE);
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(ROTATION);
+		builder.add(ROTATION, TRIGGERED);
 	}
 
 	@Override
@@ -221,12 +225,19 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 
 	@Override
 	protected void neighborChanged(
-			BlockState state, Level world, BlockPos pos, Block sourceBlock,
-			Orientation orientation, boolean notify
+		BlockState state, Level level, @NonNull BlockPos pos, @NonNull Block sourceBlock,
+		Orientation orientation, boolean notify
 	) {
-		var blockEntity = world.getBlockEntity(pos);
-		if (blockEntity instanceof BoomboxBlockEntity portable) {
-			BoomboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getBoombox());
+		boolean shouldTrigger = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above());
+		boolean isTriggered = state.getValue(TRIGGERED);
+		if (shouldTrigger && !isTriggered) {
+			var blockEntity = level.getBlockEntity(pos);
+			if (blockEntity instanceof BoomboxBlockEntity portable) {
+				BoomboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getBoombox());
+			}
+			level.setBlock(pos, state.setValue(TRIGGERED, true), 2);
+		} else if (!shouldTrigger && isTriggered) {
+			level.setBlock(pos, state.setValue(TRIGGERED, false), 2);
 		}
 	}
 
