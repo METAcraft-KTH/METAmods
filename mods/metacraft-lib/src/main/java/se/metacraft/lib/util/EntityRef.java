@@ -12,6 +12,7 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 
 public interface EntityRef {
 
@@ -96,9 +97,8 @@ public interface EntityRef {
 		}
 
 		public AABB getBoundingBox() {
-			return blockEntity.getBlockState().getCollisionShape(
-					blockEntity.getLevel(), blockEntity.getBlockPos()
-			).bounds().move(blockEntity.getBlockPos());
+			var shape = blockEntity.getBlockState().getShape(blockEntity.getLevel(), blockEntity.getBlockPos());
+			return (shape.isEmpty() ? Shapes.block() : shape).bounds().move(blockEntity.getBlockPos());
 		}
 
 		@Override
