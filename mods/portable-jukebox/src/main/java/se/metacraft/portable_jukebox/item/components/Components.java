@@ -52,6 +52,12 @@ public class Components {
 		"storage", component -> component.persistent(ItemContainerContents.CODEC)
 	);
 
+	/** Shuffle is on: the next disc is random. */
+	public static final DataComponentType<Unit> SHUFFLE = register(
+		"shuffle", component -> component.persistent(Unit.CODEC)
+	);
+
+	/** Playlist is on: the stored discs play on after each song. */
 	public static final DataComponentType<Autoplay> AUTOPLAY = register(
 		"autoplay", component -> component.persistent(Autoplay.CODEC)
 	);

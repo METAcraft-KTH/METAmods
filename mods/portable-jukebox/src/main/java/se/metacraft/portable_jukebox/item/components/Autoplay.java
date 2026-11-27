@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.core.NonNullList;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.util.Unit;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import org.jspecify.annotations.NonNull;
@@ -35,24 +36,35 @@ public enum Autoplay implements StringRepresentable {
 		boombox.remove(Components.AUTOPLAY);
 	}
 
-	/** Turns shuffle on and plays a random disc. Does nothing below the shuffle tier or with no discs at all. */
-	public void start(ItemStack boombox, EntityRef playFrom, RandomSource random) {
-		if (!pickNext(boombox, random)) return;
-		boombox.set(Components.AUTOPLAY, this);
-		BoomboxItem.play(boombox, playFrom);
+	public static Autoplay order(ItemStack boombox) {
+		return boombox.has(Components.SHUFFLE) ? RANDOM : FORWARDS;
 	}
 
-	/**
-	 * A song has just ended: if shuffle is on, play the next random disc and return true.
-	 * Returns false when shuffle is off (or can't go on), and the boombox should stop as usual.
-	 */
-	public static boolean playNext(ItemStack boombox, EntityRef playFrom, RandomSource random) {
-		var autoplay = boombox.get(Components.AUTOPLAY);
-		if (autoplay == null) return false;
-		if (!autoplay.pickNext(boombox, random)) {
+	public static void togglePlaylist(ItemStack boombox) {
+		if (boombox.has(Components.AUTOPLAY)) {
 			turnOff(boombox);
-			return false;
+		} else {
+			boombox.set(Components.AUTOPLAY, FORWARDS);
 		}
+	}
+
+	public static void toggleShuffle(ItemStack boombox) {
+		if (boombox.has(Components.SHUFFLE)) {
+			boombox.remove(Components.SHUFFLE);
+		} else {
+			boombox.set(Components.SHUFFLE, Unit.INSTANCE);
+		}
+	}
+
+	public static boolean playFromStorage(ItemStack boombox, EntityRef playFrom, RandomSource random) {
+		if (!order(boombox).pickNext(boombox, random)) return false;
+		BoomboxItem.play(boombox, playFrom);
+		return true;
+	}
+
+	/** Plays the next disc if the playlist is on; false means stop as usual. */
+	public static boolean playNext(ItemStack boombox, EntityRef playFrom, RandomSource random) {
+		if (!boombox.has(Components.AUTOPLAY) || !order(boombox).pickNext(boombox, random)) return false;
 		BoomboxItem.play(boombox, playFrom);
 		return true;
 	}

@@ -1,0 +1,6 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "portable_jukebox:item/gui/play_disabled"
+	}
+}

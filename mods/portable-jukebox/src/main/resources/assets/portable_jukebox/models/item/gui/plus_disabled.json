@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "portable_jukebox:item/gui/plus_disabled"
+	}
+}
