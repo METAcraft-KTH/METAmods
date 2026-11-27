@@ -1,7 +1,7 @@
 ### Section: PageInfo
 title=Vanilla+ Features
 external_title=Vanilla+ Features
-description=Small additions that could be vanilla: a recipe viewer, a way back from the void, quiet mobs, concrete by the stack, new decor, shops, gestures, fairer anvils, better pets, item skins, a portable jukebox and graves.
+description=Small additions that could be vanilla: a recipe viewer, a way back from the void, quiet mobs, concrete by the stack, new decor, shops, gestures, fairer anvils, better pets, item skins, a boombox and graves.
 category=booklet:main_page
 icon=minecraft:crafting_table
 order=20

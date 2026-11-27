@@ -9,7 +9,7 @@ order=100
 ### Header: Music on the go
 Right-click the Boombox to open it, put a music disc in the middle slot and press Play. It keeps playing while you carry it.
 
-Better boomboxes add more: rows of disc storage (right-click a stored disc to play it), Playlist to keep the music going from disc to disc, Shuffle to pick the next disc at random, Skip, and Volume and Speed controls. A louder boombox carries further, up to 64 blocks.
+Its storage holds more discs. Right-click one to play it, or press Skip for the next.
 
 ### Header: Placing it
 Place it and it plays on as a small block. A redstone signal starts it, and a comparator reads the song. Break it and it drops with its discs inside, like a shulker box. Hoppers can fill and empty its storage.

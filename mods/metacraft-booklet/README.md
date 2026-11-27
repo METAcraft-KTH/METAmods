@@ -26,7 +26,7 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
     Anvils                      metacraft:anvils
     Pets                        metacraft:pets
     Item Skins                  metacraft:skins
-    Boombox                     metacraft:portable_jukebox
+    Boombox                     metacraft:boombox
     Graves                      metacraft:graves
   Nether Changes                metacraft:nether
     New Mobs                    metacraft:nether/mobs (Chained Ghast, Piglin Drummer, Piglin Grenadier)
