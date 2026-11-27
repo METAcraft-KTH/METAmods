@@ -4,12 +4,14 @@ import com.google.common.base.Suppliers;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagsProvider;
 import net.fabricmc.fabric.api.datagen.v1.provider.SimpleFabricLootTableSubProvider;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -40,6 +42,19 @@ public class BoomboxDatagen implements DataGeneratorEntrypoint {
 	public void onInitializeDataGenerator(@NonNull FabricDataGenerator fabricDataGenerator) {
 		var pack = fabricDataGenerator.createPack();
 		pack.addProvider(EntityLootTableGen::new);
+		pack.addProvider(BlockTagsProvider::new);
+	}
+
+	public static class BlockTagsProvider extends FabricTagsProvider.BlockTagsProvider {
+
+		public BlockTagsProvider(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+			super(output, registriesFuture);
+		}
+
+		@Override
+		protected void addTags(HolderLookup.Provider wrapperLookup) {
+			builder(BlockTags.MINEABLE_WITH_AXE).add(ResourceKey.create(Registries.BLOCK, Boombox.getID("portable_jukebox")));
+		}
 	}
 
 	public static class EntityLootTableGen extends SimpleFabricLootTableSubProvider {

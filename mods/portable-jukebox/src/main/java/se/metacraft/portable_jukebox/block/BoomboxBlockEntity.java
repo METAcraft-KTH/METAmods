@@ -18,6 +18,7 @@ import net.minecraft.world.ticks.ContainerSingleItem;
 import org.jspecify.annotations.NonNull;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.lib.util.TaskScheduler;
+import se.metacraft.portable_jukebox.gui.BoomboxStorageInventory;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.Components;
 import se.metacraft.portable_jukebox.item.components.BoomboxInvData;
@@ -126,6 +127,45 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	@Override
 	public int getMaxStackSize() {
 		return 1;
+	}
+
+	// Slot 0 is the disc, the rest storage, so hoppers reach both.
+	private BoomboxStorageInventory storage() {
+		return new BoomboxStorageInventory(boombox, this::setChanged);
+	}
+
+	@Override
+	public int getContainerSize() {
+		return 1 + storage().getContainerSize();
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return getTheItem().isEmpty() && storage().isEmpty();
+	}
+
+	@Override
+	public ItemStack getItem(int slot) {
+		return slot == 0 ? getTheItem() : storage().getItem(slot - 1);
+	}
+
+	@Override
+	public ItemStack removeItem(int slot, int count) {
+		return slot == 0 ? splitTheItem(count) : storage().removeItem(slot - 1, count);
+	}
+
+	@Override
+	public ItemStack removeItemNoUpdate(int slot) {
+		return slot == 0 ? splitTheItem(1) : storage().removeItemNoUpdate(slot - 1);
+	}
+
+	@Override
+	public void setItem(int slot, ItemStack stack) {
+		if (slot == 0) {
+			setTheItem(stack);
+		} else {
+			storage().setItem(slot - 1, stack);
+		}
 	}
 
 	@Override

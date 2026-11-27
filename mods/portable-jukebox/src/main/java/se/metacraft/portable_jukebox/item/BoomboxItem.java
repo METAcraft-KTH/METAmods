@@ -21,6 +21,8 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.block.Blocks;
 import se.metacraft.portable_jukebox.item.components.Components;
@@ -35,6 +37,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class BoomboxItem extends BlockItem implements PolymerItem {
+
+	private static final int MAX_TOOLTIP_DISCS = 5;
 
 	public BoomboxItem(Item.Properties settings) {
 		super(Blocks.BOOMBOX, settings);
@@ -73,7 +77,7 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	@Override
 	public InteractionResult use(Level world, Player user, InteractionHand hand) {
 		var stack = user.getItemInHand(hand);
-		if (!world.isClientSide()) {
+		if (!world.isClientSide() && !user.isSecondaryUseActive()) {
 			var gui = BoomboxGui.create((ServerPlayer) user, stack, EntityRef.fromEntity(user));
 			gui.open();
 			return InteractionResult.SUCCESS;
@@ -93,11 +97,34 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	}
 
 	@Override
+	public boolean isIgnoringBlockInteractionPlaySoundExceptedEntity(
+			BlockState state, ServerPlayer player, InteractionHand hand, ItemStack stack, ServerLevel world, BlockHitResult blockHitResult
+	) {
+		return true;
+	}
+
+	@Override
 	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-		long stored = reStream(getStorage(stack)).count();
-		if (stored > 0) {
-			tooltip.add(Component.translatable("portable_jukebox.tooltip.stored", stored).withStyle(ChatFormatting.GRAY));
+		var discs = Stream.concat(
+				getDiscFromBoombox(stack).stream(), reStream(getStorage(stack)).map(ItemStackTemplate::create)
+		).toList();
+		for (var disc : discs.subList(0, Math.min(discs.size(), MAX_TOOLTIP_DISCS))) {
+			tooltip.add(discName(disc).copy().withStyle(ChatFormatting.GRAY));
 		}
+		if (discs.size() > MAX_TOOLTIP_DISCS) {
+			tooltip.add(Component.translatable("container.shulkerBox.more", discs.size() - MAX_TOOLTIP_DISCS)
+					.withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
+		}
+	}
+
+	/** The disc's own name is just "Music Disc". */
+	private static Component discName(ItemStack disc) {
+		var playable = disc.get(DataComponents.JUKEBOX_PLAYABLE);
+		return playable != null ? playable.song().value().description() : disc.getHoverName();
+	}
+
+	public static boolean hasDiscs(ItemStack boombox) {
+		return getDiscFromBoombox(boombox).isPresent() || reStream(getStorage(boombox)).findAny().isPresent();
 	}
 
 	public static Stream<ItemStackTemplate> reStream(ItemContainerContents items) {
