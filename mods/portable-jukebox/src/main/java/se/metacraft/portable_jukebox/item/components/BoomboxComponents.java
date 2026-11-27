@@ -59,8 +59,8 @@ public class BoomboxComponents {
 	);
 
 	/** Playlist is on: the stored discs play on after each song. */
-	public static final DataComponentType<Autoplay> AUTOPLAY = register(
-		"autoplay", component -> component.persistent(Autoplay.CODEC)
+	public static final DataComponentType<Unit> AUTOPLAY = register(
+		"autoplay", component -> component.persistent(Unit.CODEC)
 	);
 
 	public static final DataComponentType<Integer> CURRENT_SLOT = register(
