@@ -3,18 +3,31 @@ package se.metacraft.portable_jukebox.item.components;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.minecraft.world.item.ItemStack;
+
 import java.util.Locale;
 
 public record BoomboxConfiguration(float volume, float speed) {
 
-	public static final BoomboxConfiguration DEFAULT = new BoomboxConfiguration(4, 1);
+	public static final BoomboxConfiguration DEFAULT = new BoomboxConfiguration(1, 1);
+
+	/** The volume upgrade starts at full range (4x, 64 blocks). */
+	public static final BoomboxConfiguration UPGRADED_DEFAULT = new BoomboxConfiguration(4, 1);
 
 	public static final Codec<BoomboxConfiguration> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					Codec.floatRange(0, Float.MAX_VALUE).optionalFieldOf("volume", 4.0f).forGetter(BoomboxConfiguration::volume),
+					Codec.floatRange(0, Float.MAX_VALUE).optionalFieldOf("volume", 1.0f).forGetter(BoomboxConfiguration::volume),
 					Codec.floatRange(0.5f, 2).optionalFieldOf("pitch", 1.0f).forGetter(BoomboxConfiguration::speed)
 			).apply(instance, BoomboxConfiguration::new)
 	);
+
+	public static BoomboxConfiguration defaultFor(ItemStack boombox) {
+		return boombox.has(Components.VOLUME_BUTTONS) ? UPGRADED_DEFAULT : DEFAULT;
+	}
+
+	public static BoomboxConfiguration of(ItemStack boombox) {
+		return boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, defaultFor(boombox));
+	}
 
 	public BoomboxConfiguration withVolume(float volume) {
 		return new BoomboxConfiguration(volume, this.speed);

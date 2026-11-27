@@ -190,7 +190,7 @@ public class BoomboxGui extends LayeredGui {
 				Objects.toString(boombox.get(Components.AUTOPLAY)),
 				boombox.has(Components.SHUFFLE),
 				Objects.toString(boombox.get(Components.CURRENT_SLOT)),
-				boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT),
+				BoomboxConfiguration.of(boombox),
 				inventory.getItem(0).isEmpty(),
 				hasStoredDiscs()
 		);
@@ -205,7 +205,7 @@ public class BoomboxGui extends LayeredGui {
 
 	private void redraw() {
 		drawnState = stateKey();
-		var config = boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT);
+		var config = BoomboxConfiguration.of(boombox);
 		boolean hasDisc = !inventory.getItem(0).isEmpty();
 		boolean hasStored = hasStoredDiscs();
 
@@ -291,7 +291,7 @@ public class BoomboxGui extends LayeredGui {
 									Component.translatable("portable_jukebox.gui.restarts_song"),
 									Component.translatable("portable_jukebox.gui.reset").withStyle(ChatFormatting.DARK_GRAY)))
 							.build(),
-					() -> act(() -> configure(c -> c.withVolume(BoomboxConfiguration.DEFAULT.volume()))));
+					() -> act(() -> configure(c -> c.withVolume(BoomboxConfiguration.defaultFor(boombox).volume()))));
 			boolean atMin = config.volumeDown().equals(config);
 			boolean atMax = config.volumeUp().equals(config);
 			controls.setSlot(WIDTH + VOLUME_MINUS_COLUMN, step(false, atMin,
@@ -337,7 +337,7 @@ public class BoomboxGui extends LayeredGui {
 	 */
 	private void configure(UnaryOperator<BoomboxConfiguration> change) {
 		if (!hasConfiguration(boombox)) return;
-		var config = boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT);
+		var config = BoomboxConfiguration.of(boombox);
 		var changed = change.apply(config);
 		if (changed.equals(config)) return;
 		boombox.set(Components.BOOMBOX_CONFIGURATION, changed);

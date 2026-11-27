@@ -87,7 +87,7 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 						)
 				);
 			}
-			var config = boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT);
+			var config = BoomboxConfiguration.of(boombox);
 			for (var player : level().players()) {
 				((ServerPlayer) player).connection.send(new ClientboundSoundEntityPacket(
 						song.soundEvent(), SoundSource.RECORDS, this,
@@ -115,7 +115,7 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 			);
 		}
 		var song = get();
-		var config = boombox.getOrDefault(Components.BOOMBOX_CONFIGURATION, BoomboxConfiguration.DEFAULT);
+		var config = BoomboxConfiguration.of(boombox);
 		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.speed()) {
 			boolean finished = song.isPresent() && !isRemoved() && attachment != null;
 			discard();
