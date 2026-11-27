@@ -4,7 +4,9 @@ import eu.pb4.polymer.virtualentity.api.attachment.BlockBoundAttachment;
 import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
@@ -111,6 +113,14 @@ public class BoomboxBlockEntity extends BlockEntity implements ContainerSingleIt
 	@Override
 	public void preRemoveSideEffects(BlockPos pos, BlockState oldState) {
 		//Prevent the disc from being ejected when broken (the default behaviour of this function is to drop all items in the inventory).
+	}
+
+	@Override
+	public void applyImplicitComponents(@NonNull DataComponentGetter components) {
+		// Don't store any components in the block, they're all stored inside the item.
+		for (var component : BuiltInRegistries.DATA_COMPONENT_TYPE) {
+			components.get(component);
+		}
 	}
 
 	@Override
