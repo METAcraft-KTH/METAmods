@@ -13,7 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import se.metacraft.lib.util.EntityRef;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(ArmorStand.class)
 public abstract class ArmorStandMixin extends LivingEntity {
@@ -29,7 +29,7 @@ public abstract class ArmorStandMixin extends LivingEntity {
 			Player player, EquipmentSlot slot, ItemStack stack, InteractionHand hand, CallbackInfoReturnable<Boolean> cir
 	) {
 		if (this.getItemBySlot(slot) == stack) {
-			PortableJukeboxEntity.transfer2Way(
+			BoomboxEntity.transfer2Way(
 					EntityRef.fromEntity(player), stack,
 					EntityRef.fromEntity((ArmorStand) (Object) this), player.getItemInHand(hand)
 			);

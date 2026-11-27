@@ -7,17 +7,20 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import se.metacraft.portable_jukebox.PortableJukebox;
+import se.metacraft.portable_jukebox.Boombox;
 
 import java.util.function.Function;
 
 public class Blocks {
 
-	public static final PortableJukeboxBlock PORTABLE_JUKEBOX = register(
-			"portable_jukebox", PortableJukeboxBlock::new,
+	public static final BoomboxBlock BOOMBOX = register(
+			"portable_jukebox", BoomboxBlock::new,
 			BlockBehaviour.Properties.ofFullCopy(net.minecraft.world.level.block.Blocks.PLAYER_HEAD)
+					.strength(0.8F)
+					.sound(SoundType.WOOD)
 	);
 
 	public static void init() {
@@ -25,15 +28,15 @@ public class Blocks {
 	}
 
 	private static <T extends Block> T register(String id, Function<BlockBehaviour.Properties, T> block, BlockBehaviour.Properties settings) {
-		var key = ResourceKey.create(Registries.BLOCK, PortableJukebox.getID(id));
+		var key = ResourceKey.create(Registries.BLOCK, Boombox.getID(id));
 		return Registry.register(BuiltInRegistries.BLOCK, key, block.apply(settings.setId(key)));
 	}
 
 	public static class BlockEntities {
 
-		public static final BlockEntityType<PortableJukeboxBlockEntity> PORTABLE_JUKEBOX = register(
+		public static final BlockEntityType<BoomboxBlockEntity> BOOMBOX = register(
 				"portable_jukebox", FabricBlockEntityTypeBuilder.create(
-						PortableJukeboxBlockEntity::new, Blocks.PORTABLE_JUKEBOX
+						BoomboxBlockEntity::new, Blocks.BOOMBOX
 				).build()
 		);
 
@@ -43,7 +46,7 @@ public class Blocks {
 
 		private static <T extends BlockEntityType<?>> T register(String id, T blockEntity) {
 			PolymerBlockUtils.registerBlockEntity(blockEntity);
-			return Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, PortableJukebox.getID(id), blockEntity);
+			return Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, Boombox.getID(id), blockEntity);
 		}
 
 	}

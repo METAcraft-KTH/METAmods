@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(Inventory.class)
 public class InventoryMixin {
@@ -26,7 +26,7 @@ public class InventoryMixin {
 		)
 	)
 	public ItemStack insertStack(ItemStack original) {
-		PortableJukeboxEntity.transferToEntityFromUnknown(original, player);
+		BoomboxEntity.transferToEntityFromUnknown(original, player);
 		return original;
 	}
 
@@ -35,7 +35,7 @@ public class InventoryMixin {
 			at = @At("RETURN")
 	)
 	public void addStack(int slot, ItemStack stack, CallbackInfoReturnable<Integer> cir, @Local(ordinal = 1) ItemStack insertedStack) {
-		PortableJukeboxEntity.transferToEntityFromUnknown(insertedStack, player);
+		BoomboxEntity.transferToEntityFromUnknown(insertedStack, player);
 	}
 
 }

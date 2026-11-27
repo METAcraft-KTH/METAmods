@@ -1,0 +1,20 @@
+{
+	"providers": [
+		{
+			"type": "space",
+			"advances": {
+				"a": -8,
+				"c": -169
+			}
+		},
+		{
+			"type": "bitmap",
+			"file": "portable_jukebox:gui/bg/ghost.png",
+			"ascent": 13,
+			"height": 40,
+			"chars": [
+				"b"
+			]
+		}
+	]
+}

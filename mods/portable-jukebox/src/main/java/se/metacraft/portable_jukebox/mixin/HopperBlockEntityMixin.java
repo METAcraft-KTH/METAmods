@@ -8,7 +8,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(HopperBlockEntity.class)
 public class HopperBlockEntityMixin {
@@ -21,7 +21,7 @@ public class HopperBlockEntityMixin {
 		)
 	)
 	private static void transfer(Container from, Container to, ItemStack stack, int slot, Direction side, CallbackInfoReturnable<ItemStack> cir) {
-		PortableJukeboxEntity.transferToInventoryFromUnknown(stack, to);
+		BoomboxEntity.transferToInventoryFromUnknown(stack, to);
 	}
 
 }

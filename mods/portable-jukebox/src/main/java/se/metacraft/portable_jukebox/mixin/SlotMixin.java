@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(Slot.class)
 public class SlotMixin {
@@ -18,7 +18,7 @@ public class SlotMixin {
 
 	@Inject(method = "set", at = @At("HEAD"))
 	public void setStackNoCallbacks(ItemStack stack, CallbackInfo ci) {
-		PortableJukeboxEntity.transferToInventoryFromUnknown(
+		BoomboxEntity.transferToInventoryFromUnknown(
 				stack, container
 		);
 	}

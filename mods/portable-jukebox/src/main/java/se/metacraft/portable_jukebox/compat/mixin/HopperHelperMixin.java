@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Pseudo
 @Mixin(HopperHelper.class)
@@ -30,7 +30,7 @@ public class HopperHelperMixin {
 			int targetSlot, Direction fromDirection, CallbackInfoReturnable<Boolean> cir,
 			@Local(ordinal = 3) ItemStack singleItem
 	) {
-		PortableJukeboxEntity.transferToInventoryFromUnknown(singleItem, to);
+		BoomboxEntity.transferToInventoryFromUnknown(singleItem, to);
 	}
 
 }

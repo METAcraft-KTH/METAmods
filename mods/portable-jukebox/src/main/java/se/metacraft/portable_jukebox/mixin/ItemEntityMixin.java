@@ -9,7 +9,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import se.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
+import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 
 @Mixin(ItemEntity.class)
 public abstract class ItemEntityMixin extends Entity {
@@ -20,7 +20,7 @@ public abstract class ItemEntityMixin extends Entity {
 
 	@Inject(method = "setItem", at = @At("RETURN"))
 	public void setStack(ItemStack stack, CallbackInfo ci) {
-		PortableJukeboxEntity.transferToItemFromUnknown(
+		BoomboxEntity.transferToItemFromUnknown(
 				stack, level(), (ItemEntity) (Object) this
 		);
 	}

@@ -26,7 +26,7 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
     Anvils                      metacraft:anvils
     Pets                        metacraft:pets
     Item Skins                  metacraft:skins
-    Portable Jukebox            metacraft:portable_jukebox
+    Boombox                     metacraft:boombox
     Graves                      metacraft:graves
   Nether Changes                metacraft:nether
     New Mobs                    metacraft:nether/mobs (Chained Ghast, Piglin Drummer, Piglin Grenadier)
@@ -73,7 +73,7 @@ none of them has no such section.
 | `anvils` | metacraft-repair-fix | "Anvils": no Too Expensive, cheap renaming, netherite repairs |
 | `pets` | better-pets | "Pets": trusted players, no friendly fire, pets follow through teleports, parrot breeding |
 | `skins` | metacraft-skins | "Item Skins": tokens, Skin Boxes, mob hats, `/itemskins` |
-| `jukebox` | portable-jukebox | "Portable Jukebox": the Piglin Drummer's drop |
+| `jukebox` | portable-jukebox | "Boombox": the Piglin Drummer's drop |
 | `graves` | universal-graves | "Graves": Patbox's Universal Graves as the server configures it (no grave for lava or void deaths) |
 | `rifts` | nether-rifts | the Nether Changes section page and everything in it: New Mobs, Unstable Portals, Piglin Raid, Amplified Nether |
 
