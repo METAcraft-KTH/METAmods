@@ -5,7 +5,7 @@ import net.minecraft.world.level.storage.loot.ContainerComponentManipulators;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 
 import java.util.stream.Stream;
 
@@ -23,7 +23,7 @@ public interface ContainerComponentManipulatorsMixin {
 		//noinspection unchecked
 		return Stream.concat(
 			original, Stream.of(
-				(T) Components.Manipulators.BOOMBOX, (T) Components.Manipulators.BOOMBOX_STORAGE
+				(T) BoomboxComponents.Manipulators.BOOMBOX, (T) BoomboxComponents.Manipulators.BOOMBOX_STORAGE
 			)
 		);
 	}

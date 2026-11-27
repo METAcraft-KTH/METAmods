@@ -17,12 +17,13 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jspecify.annotations.NonNull;
-import se.metacraft.portable_jukebox.block.Blocks;
+import se.metacraft.portable_jukebox.block.BoomboxBlocks;
 import se.metacraft.portable_jukebox.block.BoomboxBlockEntity;
-import se.metacraft.portable_jukebox.item.Items;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.BoomboxItems;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -41,7 +42,7 @@ public class DataFixTest implements CustomTestMethodInvoker {
 	}
 
 	private static void validateItem(GameTestHelper helper, ItemStackTemplate item) {
-		if (!item.is(net.minecraft.world.item.Items.MUSIC_DISC_PIGSTEP)) {
+		if (!item.is(Items.MUSIC_DISC_PIGSTEP)) {
 			helper.fail("Not pigstep");
 		}
 
@@ -56,15 +57,15 @@ public class DataFixTest implements CustomTestMethodInvoker {
 	}
 
 	private static void validateBoombox(GameTestHelper helper, ItemStack boombox) {
-		if (boombox.is(Items.BOOMBOX)) {
-			var data = boombox.get(Components.BOOMBOX);
+		if (boombox.is(BoomboxItems.BOOMBOX)) {
+			var data = boombox.get(BoomboxComponents.BOOMBOX);
 			if (data == null || data.item().isEmpty()) {
 				helper.fail("Data went missing");
 				return;
 			}
 			validateItem(helper, data.item().get());
 
-			var storage = boombox.get(Components.BOOMBOX_STORAGE);
+			var storage = boombox.get(BoomboxComponents.BOOMBOX_STORAGE);
 			if (storage == null) {
 				helper.fail("Data went missing");
 				return;
@@ -100,11 +101,11 @@ public class DataFixTest implements CustomTestMethodInvoker {
 			References.ITEM_STACK, new Dynamic<>(
 				JavaOps.INSTANCE,
 				Map.of(
-					"id", Items.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
+					"id", BoomboxItems.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
 					"components", Map.of(
-						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX).toString(),
+						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(BoomboxComponents.BOOMBOX).toString(),
 						upgradableItem(),
-						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX_STORAGE).toString(),
+						BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(BoomboxComponents.BOOMBOX_STORAGE).toString(),
 						upgradableSlots()
 					)
 				)
@@ -128,13 +129,13 @@ public class DataFixTest implements CustomTestMethodInvoker {
 			References.BLOCK_ENTITY, new Dynamic<>(
 				JavaOps.INSTANCE,
 				Map.of(
-					"id", Blocks.BlockEntities.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
+					"id", BoomboxBlocks.BlockEntities.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
 					"Jukebox", Map.of(
-						"id", Items.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
+						"id", BoomboxItems.BOOMBOX.builtInRegistryHolder().key().identifier().toString(),
 						"components", Map.of(
-							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX).toString(),
+							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(BoomboxComponents.BOOMBOX).toString(),
 							upgradableItem(),
-							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(Components.BOOMBOX_STORAGE).toString(),
+							BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(BoomboxComponents.BOOMBOX_STORAGE).toString(),
 							upgradableSlots()
 						)
 					)
@@ -145,7 +146,7 @@ public class DataFixTest implements CustomTestMethodInvoker {
 		);
 
 		var blockEntity = BlockEntity.loadStatic(
-			BlockPos.ZERO, Blocks.BOOMBOX.defaultBlockState(),
+			BlockPos.ZERO, BoomboxBlocks.BOOMBOX.defaultBlockState(),
 			(CompoundTag) JavaOps.INSTANCE.convertTo(NbtOps.INSTANCE, data.getValue()),
 			helper.getLevel().registryAccess()
 		);

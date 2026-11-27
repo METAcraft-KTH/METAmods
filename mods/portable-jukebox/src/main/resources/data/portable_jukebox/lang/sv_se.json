@@ -24,7 +24,7 @@
 	"portable_jukebox.gui.range.down": "Sänk räckvidd",
 	"portable_jukebox.gui.range.up": "Höj räckvidd",
 	"portable_jukebox.gui.speed": "Hastighet: %s",
-	"portable_jukebox.gui.speed.description": "Snabbare är också högre, långsammare är också lägre",
+	"portable_jukebox.gui.speed.description": "Snabbare = högre tonhöjd, långsammare = lägre tonhöjd",
 	"portable_jukebox.gui.speed.down": "Långsammare",
 	"portable_jukebox.gui.speed.up": "Snabbare",
 	"portable_jukebox.gui.reset": "Klicka för att återställa",

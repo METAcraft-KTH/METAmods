@@ -16,11 +16,11 @@ public record BoomboxEntityEntry(UUID entity) {
 	);
 
 	public static Optional<UUID> getWithoutInventories(ItemStack stack) {
-		return Optional.ofNullable(stack.get(Components.BOOMBOX_ENTITY)).map(BoomboxEntityEntry::entity);
+		return Optional.ofNullable(stack.get(BoomboxComponents.BOOMBOX_ENTITY)).map(BoomboxEntityEntry::entity);
 	}
 
 	public static Stream<UUID> get(ItemStack stack) {
-		return ItemWithInventoryHelper.getAllComponents(stack, Components.BOOMBOX_ENTITY).map(BoomboxEntityEntry::entity);
+		return ItemWithInventoryHelper.getAllComponents(stack, BoomboxComponents.BOOMBOX_ENTITY).map(BoomboxEntityEntry::entity);
 	}
 
 }

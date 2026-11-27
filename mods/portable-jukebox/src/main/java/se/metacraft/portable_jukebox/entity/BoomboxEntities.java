@@ -10,7 +10,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import se.metacraft.portable_jukebox.Boombox;
 
-public class Entities {
+public class BoomboxEntities {
 
 	public static final EntityType<BoomboxEntity> BOOMBOX = register(
 			"portable_jukebox", EntityType.Builder.of(BoomboxEntity::new, MobCategory.MISC)

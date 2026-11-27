@@ -29,7 +29,7 @@ import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.Boombox;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.Autoplay;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.item.components.BoomboxConfiguration;
 
 import java.util.*;
@@ -56,6 +56,8 @@ public class BoomboxGui extends LayeredGui {
 	private static final int SPEED_DISPLAY_COLUMN = 7;
 	private static final int SPEED_MINUS_COLUMN = 7;
 	private static final int SPEED_PLUS_COLUMN = 8;
+
+	public static final int MAX_STORAGE_SIZE = 36;
 
 	/** Ticks after the last speed or volume click before a playing song restarts with the new sound. */
 	private static final int RESTART_DELAY = 15;
@@ -85,7 +87,7 @@ public class BoomboxGui extends LayeredGui {
 		this.boombox = boombox;
 		this.toPlayFrom = toPlayFrom;
 		this.unlockedSlots = Math.min(
-				boombox.getOrDefault(Components.STORAGE_SIZE, 0), (MAX_ROWS - CONTROL_ROWS) * WIDTH);
+				boombox.getOrDefault(BoomboxComponents.STORAGE_SIZE, 0), (MAX_ROWS - CONTROL_ROWS) * WIDTH);
 		this.inventory = new BoomboxInventory(boombox, onUpdate);
 		this.storage = new BoomboxStorageInventory(boombox, onUpdate);
 
@@ -129,11 +131,11 @@ public class BoomboxGui extends LayeredGui {
 	}
 
 	private static int storageRows(ItemStack boombox) {
-		return (boombox.getOrDefault(Components.STORAGE_SIZE, 0) + WIDTH - 1) / WIDTH;
+		return (boombox.getOrDefault(BoomboxComponents.STORAGE_SIZE, 0) + WIDTH - 1) / WIDTH;
 	}
 
 	private static boolean hasConfiguration(ItemStack boombox) {
-		return boombox.has(Components.VOLUME_BUTTONS) || boombox.has(Components.SPEED_BUTTONS);
+		return boombox.has(BoomboxComponents.VOLUME_BUTTONS) || boombox.has(BoomboxComponents.SPEED_BUTTONS);
 	}
 
 	private static MenuType<?> menuType(ItemStack boombox) {
@@ -187,9 +189,9 @@ public class BoomboxGui extends LayeredGui {
 	private Object stateKey() {
 		return List.of(
 				isPlaying(),
-				Objects.toString(boombox.get(Components.AUTOPLAY)),
-				boombox.has(Components.SHUFFLE),
-				Objects.toString(boombox.get(Components.CURRENT_SLOT)),
+				Objects.toString(boombox.get(BoomboxComponents.AUTOPLAY)),
+				boombox.has(BoomboxComponents.SHUFFLE),
+				Objects.toString(boombox.get(BoomboxComponents.CURRENT_SLOT)),
 				BoomboxConfiguration.of(boombox),
 				inventory.getItem(0).isEmpty(),
 				hasStoredDiscs()
@@ -240,8 +242,8 @@ public class BoomboxGui extends LayeredGui {
 			}));
 		}
 
-		if (boombox.has(Components.SHUFFLE_TOGGLE)) {
-			boolean on = boombox.has(Components.SHUFFLE);
+		if (boombox.has(BoomboxComponents.SHUFFLE_TOGGLE)) {
+			boolean on = boombox.has(BoomboxComponents.SHUFFLE);
 			controls.setSlot(SHUFFLE_COLUMN, control(!hasStored && !on ? "shuffle_disabled" : "shuffle",
 							Component.translatable("portable_jukebox.gui.shuffle"))
 							.set(DataComponents.LORE, lore(
@@ -255,13 +257,13 @@ public class BoomboxGui extends LayeredGui {
 					}));
 		}
 
-		if (boombox.has(Components.PLAYLIST_TOGGLE)) {
-			boolean on = boombox.has(Components.AUTOPLAY);
+		if (boombox.has(BoomboxComponents.PLAYLIST_TOGGLE)) {
+			boolean on = boombox.has(BoomboxComponents.AUTOPLAY);
 			List<Component> list = new ArrayList<>();
 			list.add(Component.translatable("portable_jukebox.gui.playlist.description").withStyle(ChatFormatting.GRAY));
-			if (on && !boombox.has(Components.SHUFFLE)) {
+			if (on && !boombox.has(BoomboxComponents.SHUFFLE)) {
 				var stored = BoomboxItem.getStorageList(boombox);
-				var currentSlot = boombox.get(Components.CURRENT_SLOT);
+				var currentSlot = boombox.get(BoomboxComponents.CURRENT_SLOT);
 				Autoplay.FORWARDS.pickSlot(
 						stored, currentSlot != null ? OptionalInt.of(currentSlot) : OptionalInt.empty(), getPlayer().getRandom()
 				).stream().mapToObj(stored::get).findAny()
@@ -282,7 +284,7 @@ public class BoomboxGui extends LayeredGui {
 					}));
 		}
 
-		if (boombox.has(Components.VOLUME_BUTTONS)) {
+		if (boombox.has(BoomboxComponents.VOLUME_BUTTONS)) {
 			boolean boosted = BoomboxConfiguration.isRangeBoosted(config.volume());
 			var name = volumeName(config.volume());
 			controls.setSlot(VOLUME_DISPLAY_COLUMN, control("volume", name)
@@ -302,7 +304,7 @@ public class BoomboxGui extends LayeredGui {
 					() -> act(() -> configure(BoomboxConfiguration::volumeUp)));
 		}
 
-		if (boombox.has(Components.SPEED_BUTTONS)) {
+		if (boombox.has(BoomboxComponents.SPEED_BUTTONS)) {
 			var name = Component.translatable("portable_jukebox.gui.speed", BoomboxConfiguration.formatSpeed(config.speed()));
 			controls.setSlot(SPEED_DISPLAY_COLUMN, control("speed", name)
 							.set(DataComponents.LORE, lore(
@@ -340,7 +342,7 @@ public class BoomboxGui extends LayeredGui {
 		var config = BoomboxConfiguration.of(boombox);
 		var changed = change.apply(config);
 		if (changed.equals(config)) return;
-		boombox.set(Components.BOOMBOX_CONFIGURATION, changed);
+		boombox.set(BoomboxComponents.BOOMBOX_CONFIGURATION, changed);
 		inventory.setChanged();
 		if (isPlaying()) {
 			restartIn = RESTART_DELAY;
@@ -348,7 +350,7 @@ public class BoomboxGui extends LayeredGui {
 	}
 
 	private boolean isPlaying() {
-		return boombox.has(Components.BOOMBOX_ENTITY);
+		return boombox.has(BoomboxComponents.BOOMBOX_ENTITY);
 	}
 
 	/** Restarts the playing song with the new speed and volume, if it's still playing. */

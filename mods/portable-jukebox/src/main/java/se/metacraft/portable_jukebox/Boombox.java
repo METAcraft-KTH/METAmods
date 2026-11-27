@@ -6,9 +6,9 @@ import net.minecraft.resources.Identifier;
 import se.metacraft.portable_jukebox.compat.CompatInit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import se.metacraft.portable_jukebox.block.Blocks;
-import se.metacraft.portable_jukebox.entity.Entities;
-import se.metacraft.portable_jukebox.item.Items;
+import se.metacraft.portable_jukebox.block.BoomboxBlocks;
+import se.metacraft.portable_jukebox.entity.BoomboxEntities;
+import se.metacraft.portable_jukebox.item.BoomboxItems;
 
 public class Boombox implements ModInitializer {
 
@@ -18,9 +18,9 @@ public class Boombox implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		Items.init();
-		Blocks.init();
-		Entities.init();
+		BoomboxItems.init();
+		BoomboxBlocks.init();
+		BoomboxEntities.init();
 		CompatInit.init();
 		PolymerResourcePackUtils.addModAssets("portable-jukebox");
 		PolymerResourcePackUtils.markAsRequired();

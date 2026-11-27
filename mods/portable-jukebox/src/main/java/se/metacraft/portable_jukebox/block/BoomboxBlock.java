@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.entity.BoomboxEntity;
 import se.metacraft.portable_jukebox.gui.BoomboxGui;
 
@@ -127,7 +127,7 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 					EntityRef.fromEntity(placer), EntityRef.fromBlock(b), b.getBoombox()
 			);
 			// Creative keeps the stack in hand, which would otherwise still own the sound.
-			itemStack.remove(Components.BOOMBOX_ENTITY);
+			itemStack.remove(BoomboxComponents.BOOMBOX_ENTITY);
 		}
 	}
 
@@ -158,7 +158,7 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 
 	private static ItemStack droppedStack(BoomboxBlockEntity boombox) {
 		var stack = boombox.getBoombox().copy();
-		stack.remove(Components.BOOMBOX_ENTITY);
+		stack.remove(BoomboxComponents.BOOMBOX_ENTITY);
 		return stack;
 	}
 
@@ -177,12 +177,12 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 			// A plain pick gives an empty boombox; Ctrl + pick keeps the contents.
 			var stack = droppedStack(boombox);
 			if (!includeData) {
-				stack.remove(Components.BOOMBOX);
-				stack.remove(Components.BOOMBOX_STORAGE);
-				stack.remove(Components.CURRENT_SLOT);
-				stack.remove(Components.BOOMBOX_CONFIGURATION);
-				stack.remove(Components.AUTOPLAY);
-				stack.remove(Components.SHUFFLE);
+				stack.remove(BoomboxComponents.BOOMBOX);
+				stack.remove(BoomboxComponents.BOOMBOX_STORAGE);
+				stack.remove(BoomboxComponents.CURRENT_SLOT);
+				stack.remove(BoomboxComponents.BOOMBOX_CONFIGURATION);
+				stack.remove(BoomboxComponents.AUTOPLAY);
+				stack.remove(BoomboxComponents.SHUFFLE);
 			}
 			return stack;
 		}

@@ -85,26 +85,10 @@ Every deploy run has a summary (the run's page on GitHub → Summary) with, per 
 - **removed**: mods deleted at the next restart;
 - **unchanged**: everything else.
 
-A deploy to any server but test also publishes a release, `deploy-<server>-<date>-<commit>`, with that
-server's exact jars. Releases are kept forever. The test server gets none: it is never rolled back.
-
 Deploys to one server run one at a time. If several pushes queue up for the same server, the newest one
-wins: a queued deploy or rollback that a newer one replaces is cancelled, and a push that is no longer
+wins: a queued deploy that a newer one replaces is cancelled, and a push that is no longer
 its branch's newest commit when its turn comes deploys nothing (its run says so). If the newest push
 fails to build, nothing is deployed until a later push builds.
-
-## Rolling back
-
-To put a server back to an earlier state:
-
-1. Find the release: Releases → `deploy-<server>-…` from before the problem.
-2. Actions → the build workflow → **Run workflow**, on `dev` (rollback only runs from the default
-   branch; you still choose any server there). Choose the `server` and paste the `release` tag.
-3. It uploads what differs from the server's current state and removes what that release didn't have.
-   Restart the server.
-
-A rollback compiles no mods, so it works even when a mod doesn't compile. It still needs `dev`'s
-Gradle build to configure.
 
 ## When a deploy refuses
 
@@ -146,7 +130,7 @@ checks that two clean builds give the same jars (`.github/scripts/check-reproduc
 The end-to-end test runs by hand, because it needs `autodeploy.jar` and METAcraft-KTH/FabricModsUpdate
 is private. It deploys the real test set to an SFTP server in Docker and runs autodeploy as the
 restart: the refusal with an old autodeploy, the switch from the bundle, a re-deploy, one changed mod,
-a removal and a rollback. Run it when you change the deploy tooling or autodeploy:
+and a removal. Run it when you change the deploy tooling or autodeploy:
 
 ```
 ./gradlew deploySet -Pserver=test

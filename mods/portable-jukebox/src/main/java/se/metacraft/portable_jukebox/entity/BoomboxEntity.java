@@ -41,10 +41,10 @@ import se.metacraft.portable_jukebox.InventoryHelper;
 import se.metacraft.portable_jukebox.Boombox;
 import se.metacraft.portable_jukebox.block.BoomboxBlockEntity;
 import se.metacraft.portable_jukebox.data.RemovalAware;
-import se.metacraft.portable_jukebox.item.Items;
+import se.metacraft.portable_jukebox.item.BoomboxItems;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.Autoplay;
-import se.metacraft.portable_jukebox.item.components.Components;
+import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
 import se.metacraft.portable_jukebox.item.components.BoomboxConfiguration;
 import se.metacraft.portable_jukebox.item.components.BoomboxEntityEntry;
 import se.metacraft.portable_jukebox.ItemWithInventoryHelper;
@@ -85,7 +85,7 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 	public void setBoombox(ItemStack boombox) {
 		this.boombox = boombox;
 		get().ifPresentOrElse(song -> {
-			boombox.set(Components.BOOMBOX_ENTITY, new BoomboxEntityEntry(
+			boombox.set(BoomboxComponents.BOOMBOX_ENTITY, new BoomboxEntityEntry(
 					this.getUUID()
 			));
 			for (var player : hearingPlayers) {
@@ -185,7 +185,7 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 	}
 
 	private static boolean isValidStack(ItemStack stack) {
-		return stack.is(Items.BOOMBOX);
+		return stack.is(BoomboxItems.BOOMBOX);
 	}
 
 	private static Runnable transferInternal(EntityRef from, EntityRef to, UUID toTransfer) {
@@ -252,8 +252,8 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 	}
 
 	private static Optional<EntityRef> getBoomboxAttachmentNonRecursive(ItemStack stack, Level world) {
-		if (stack.has(Components.BOOMBOX_ENTITY) && !world.isClientSide()) {
-			var entry = stack.get(Components.BOOMBOX_ENTITY);
+		if (stack.has(BoomboxComponents.BOOMBOX_ENTITY) && !world.isClientSide()) {
+			var entry = stack.get(BoomboxComponents.BOOMBOX_ENTITY);
 			var e = world.getEntity(entry.entity());
 			if (e instanceof BoomboxEntity boombox) {
 				return boombox.getConnectedEntity();
@@ -334,7 +334,7 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 		if (attachment != null) {
 			EntityRefHelper.removeBoombox(attachment, this);
 		}
-		boombox.remove(Components.BOOMBOX_ENTITY);
+		boombox.remove(BoomboxComponents.BOOMBOX_ENTITY);
 		if (attachment != null) {
 			attachment.onUpdate();
 		}

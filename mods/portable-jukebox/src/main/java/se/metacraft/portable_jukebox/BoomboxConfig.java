@@ -4,9 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.component.ItemContainerContents;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.util.CommentCodec;
+import se.metacraft.portable_jukebox.gui.BoomboxGui;
 
 public record BoomboxConfig(
 	DefaultUpgrades defaultUpgrades
@@ -41,7 +41,7 @@ public record BoomboxConfig(
 		public static final MapCodec<DefaultUpgrades> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 				CommentCodec.comment(
-					Codec.intRange(0, ItemContainerContents.MAX_SIZE).fieldOf("storage"),
+					Codec.intRange(0, BoomboxGui.MAX_STORAGE_SIZE).fieldOf("storage"),
 					Component.translatable("config.portable_jukebox.default_upgrades.storage")
 				).forGetter(DefaultUpgrades::storage),
 				CommentCodec.comment(

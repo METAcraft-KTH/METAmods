@@ -33,26 +33,26 @@ public enum Autoplay implements StringRepresentable {
 	}
 
 	public static void turnOff(ItemStack boombox) {
-		boombox.remove(Components.AUTOPLAY);
+		boombox.remove(BoomboxComponents.AUTOPLAY);
 	}
 
 	public static Autoplay order(ItemStack boombox) {
-		return boombox.has(Components.SHUFFLE) ? RANDOM : FORWARDS;
+		return boombox.has(BoomboxComponents.SHUFFLE) ? RANDOM : FORWARDS;
 	}
 
 	public static void togglePlaylist(ItemStack boombox) {
-		if (boombox.has(Components.AUTOPLAY)) {
+		if (boombox.has(BoomboxComponents.AUTOPLAY)) {
 			turnOff(boombox);
 		} else {
-			boombox.set(Components.AUTOPLAY, FORWARDS);
+			boombox.set(BoomboxComponents.AUTOPLAY, FORWARDS);
 		}
 	}
 
 	public static void toggleShuffle(ItemStack boombox) {
-		if (boombox.has(Components.SHUFFLE)) {
-			boombox.remove(Components.SHUFFLE);
+		if (boombox.has(BoomboxComponents.SHUFFLE)) {
+			boombox.remove(BoomboxComponents.SHUFFLE);
 		} else {
-			boombox.set(Components.SHUFFLE, Unit.INSTANCE);
+			boombox.set(BoomboxComponents.SHUFFLE, Unit.INSTANCE);
 		}
 	}
 
@@ -64,7 +64,7 @@ public enum Autoplay implements StringRepresentable {
 
 	/** Plays the next disc if the playlist is on; false means stop as usual. */
 	public static boolean playNext(ItemStack boombox, EntityRef playFrom, RandomSource random) {
-		if (!boombox.has(Components.AUTOPLAY) || !order(boombox).pickNext(boombox, random)) return false;
+		if (!boombox.has(BoomboxComponents.AUTOPLAY) || !order(boombox).pickNext(boombox, random)) return false;
 		BoomboxItem.play(boombox, playFrom);
 		return true;
 	}
@@ -101,8 +101,8 @@ public enum Autoplay implements StringRepresentable {
 
 	private boolean pickNext(ItemStack boombox, RandomSource random) {
 		var storage = BoomboxItem.getStorageList(boombox);
-		var current = boombox.getOrDefault(Components.BOOMBOX, BoomboxInvData.EMPTY).getItem();
-		var currentSlot = boombox.get(Components.CURRENT_SLOT);
+		var current = boombox.getOrDefault(BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY).getItem();
+		var currentSlot = boombox.get(BoomboxComponents.CURRENT_SLOT);
 		OptionalInt slot = pickSlot(storage, currentSlot != null ? OptionalInt.of(currentSlot) : OptionalInt.empty(), random);
 
 		if (slot.isPresent()) {
@@ -110,8 +110,8 @@ public enum Autoplay implements StringRepresentable {
 			storage.set(slot.getAsInt(), current.copy());
 
 			BoomboxItem.setStorage(boombox, ItemContainerContents.fromItems(storage));
-			boombox.update(Components.BOOMBOX, BoomboxInvData.EMPTY, inv -> inv.withItem(next));
-			boombox.set(Components.CURRENT_SLOT, slot.getAsInt());
+			boombox.update(BoomboxComponents.BOOMBOX, BoomboxInvData.EMPTY, inv -> inv.withItem(next));
+			boombox.set(BoomboxComponents.CURRENT_SLOT, slot.getAsInt());
 			return true;
 		}
 

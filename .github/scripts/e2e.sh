@@ -58,7 +58,7 @@ update_jars() { find "$SERVER_DIR/mods/update" -maxdepth 1 -name '*.jar' | wc -l
 
 assert_mods_match() { # <set dir>: mods/ holds exactly the set's jars, plus the hand-managed one
   local expected actual f want got
-  expected=$( (jq -r '.[].file' "$1/manifest.json"; echo fabric-api-fake.jar) | sort)
+  expected=$( (jq -r '.[].file' "$1/manifest.json"; echo some-other-mod.jar) | sort)
   actual=$(cd "$SERVER_DIR/mods" && ls -1 -- *.jar | sort)
   [ "$expected" = "$actual" ] || fail "mods/ differs from $1:\n$(diff <(echo "$expected") <(echo "$actual") || true)"
   for f in $(jq -r '.[].file' "$1/manifest.json"); do
@@ -83,7 +83,7 @@ done
 rm -rf "$E2E"
 mkdir -p "$SERVER_DIR/mods/update"
 make_mod_jar "$SERVER_DIR/mods/metacraft-1.0.0.jar" metacraft
-make_mod_jar "$SERVER_DIR/mods/fabric-api-fake.jar" fabric-api
+make_mod_jar "$SERVER_DIR/mods/some-other-mod.jar" some-other-mod
 cat > "$E2E/servers.json" <<EOF
 {"branches": {}, "servers": {"test": {"host": "127.0.0.1", "port": $PORT, "user": "deploy"}}}
 EOF
@@ -148,11 +148,5 @@ deploy "$SET3"
 [ "$(update_jars)" = 0 ] || fail "a removal uploaded jars"
 restart
 assert_mods_match "$SET3"
-
-echo "6. rolling back to the first set restores it"
-deploy "$SET1"
-[ "$(update_jars)" = 2 ] || fail "the rollback should upload 2 jars, got $(update_jars)"
-restart
-assert_mods_match "$SET1"
 
 echo "E2E OK"
