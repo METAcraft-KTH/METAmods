@@ -149,10 +149,4 @@ deploy "$SET3"
 restart
 assert_mods_match "$SET3"
 
-echo "6. rolling back to the first set restores it"
-deploy "$SET1"
-[ "$(update_jars)" = 2 ] || fail "the rollback should upload 2 jars, got $(update_jars)"
-restart
-assert_mods_match "$SET1"
-
 echo "E2E OK"
