@@ -1,9 +1,15 @@
 package se.metacraft.simplecustomfeatures.objects.items.simple;
 
+import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.bytebuddy.implementation.bind.annotation.Argument;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.implementation.bind.annotation.This;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 
@@ -23,21 +29,35 @@ public class ItemProxy {
 		}
 	}
 
-	public static Item getPolymerItem(@This CustomisedItem item) {
+	public static Item getPolymerItem(
+		@This CustomisedItem item,
+		@Argument(0) ItemStack stack,
+		@Argument(1) PacketContext context
+	) {
 		var settings = item.simple_custom_features$getSettings();
-		return settings.disguise().map(ItemStack::getItem).orElse(settings.itemSettings().baseItem().value());
+		var i = settings.disguise().map(ItemStack::getItem).orElse(settings.itemSettings().baseItem().value());
+		if (i instanceof PolymerItem p) {
+			return p.getPolymerItem(stack, context);
+		}
+		return i;
 	}
 
 	public static ItemStack getPolymerItemStack(
-			@This CustomisedItem item, @SuperCall Callable<ItemStack> superCall
+		@This CustomisedItem item, @SuperCall Callable<ItemStack> superCall,
+		@Argument(1) TooltipFlag tooltipType, @Argument(2) PacketContext context,
+		@Argument(3) HolderLookup.Provider lookup
 	) throws Exception {
 		var settings = item.simple_custom_features$getSettings();
 		var stack = superCall.call();
-		return settings.disguise().map(result -> {
+		var i = settings.disguise().map(result -> {
 			result.applyComponentsAndValidate(stack.getComponentsPatch());
 			result.setCount(stack.getCount());
 			return result;
 		}).orElse(stack);
+		if (i != null && i.getItem() instanceof PolymerItem p) {
+			return p.getPolymerItemStack(i, tooltipType, context, lookup);
+		}
+		return i;
 	}
 
 }
