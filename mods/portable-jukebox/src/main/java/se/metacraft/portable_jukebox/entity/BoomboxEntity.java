@@ -185,7 +185,7 @@ public class BoomboxEntity extends Entity implements PolymerEntity, RemovalAware
 	}
 
 	private static boolean isValidStack(ItemStack stack) {
-		return stack.is(BoomboxItems.BOOMBOX);
+		return stack.getItem() instanceof BoomboxItem;
 	}
 
 	private static Runnable transferInternal(EntityRef from, EntityRef to, UUID toTransfer) {

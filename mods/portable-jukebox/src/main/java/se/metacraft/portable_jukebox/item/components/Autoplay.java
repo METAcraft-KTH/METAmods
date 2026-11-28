@@ -44,7 +44,7 @@ public enum Autoplay implements StringRepresentable {
 		if (boombox.has(BoomboxComponents.AUTOPLAY)) {
 			turnOff(boombox);
 		} else {
-			boombox.set(BoomboxComponents.AUTOPLAY, FORWARDS);
+			boombox.set(BoomboxComponents.AUTOPLAY, Unit.INSTANCE);
 		}
 	}
 
@@ -67,10 +67,6 @@ public enum Autoplay implements StringRepresentable {
 		if (!boombox.has(BoomboxComponents.AUTOPLAY) || !order(boombox).pickNext(boombox, random)) return false;
 		BoomboxItem.play(boombox, playFrom);
 		return true;
-	}
-
-	public boolean deterministic() {
-		return this == FORWARDS;
 	}
 
 	public OptionalInt pickSlot(NonNullList<ItemStack> storage, OptionalInt currentSlot, RandomSource random) {

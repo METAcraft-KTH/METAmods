@@ -1,6 +1,7 @@
 package se.metacraft.portable_jukebox.ender_chest;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
@@ -78,6 +79,11 @@ public class EnderChestEntityRef implements EntityRef {
 	@Override
 	public Object get() {
 		return getEnderChest(player).map(EntityRef::get).orElse(null);
+	}
+
+	@Override
+	public RandomSource getRandom() {
+		return player.getRandom();
 	}
 
 	@Override

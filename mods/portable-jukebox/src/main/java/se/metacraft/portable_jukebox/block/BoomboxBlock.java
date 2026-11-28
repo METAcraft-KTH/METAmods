@@ -32,6 +32,8 @@ import net.minecraft.world.level.block.SkullBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.RotationSegment;
 import net.minecraft.world.level.redstone.Orientation;
@@ -43,6 +45,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.jspecify.annotations.NonNull;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.item.BoomboxItem;
 import se.metacraft.portable_jukebox.item.components.BoomboxComponents;
@@ -54,6 +57,7 @@ import java.util.List;
 public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBlock, BlockWithElementHolder {
 
 	public static final IntegerProperty ROTATION = SkullBlock.ROTATION;
+	public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
 
 	private static final VoxelShape SHAPE = Block.column(16.0, 0.0, 8.0);
 
@@ -61,13 +65,13 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 
 	public BoomboxBlock(Properties settings) {
 		super(settings);
-		registerDefaultState(stateDefinition.any().setValue(ROTATION, 0));
+		registerDefaultState(stateDefinition.any().setValue(ROTATION, 0).setValue(TRIGGERED, false));
 		this.clientState = PolymerBlockResourceUtils.requestEmpty(BlockModelType.TRIPWIRE);
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(ROTATION);
+		builder.add(ROTATION, TRIGGERED);
 	}
 
 	@Override
@@ -149,24 +153,24 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 			!world.isClientSide() && player.preventsBlockDrops() &&
 			world.getBlockEntity(pos) instanceof BoomboxBlockEntity boombox && BoomboxItem.hasDiscs(boombox.getBoombox())
 		) {
-			var entity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, droppedStack(boombox));
+			var entity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, dropStack(boombox));
 			entity.setDefaultPickUpDelay();
 			world.addFreshEntity(entity);
 		}
 		return super.playerWillDestroy(world, pos, state, player);
 	}
 
-	private static ItemStack droppedStack(BoomboxBlockEntity boombox) {
-		var stack = boombox.getBoombox().copy();
-		stack.remove(BoomboxComponents.BOOMBOX_ENTITY);
-		return stack;
+	private static ItemStack dropStack(BoomboxBlockEntity boombox) {
+		var copy = boombox.getBoombox().copy();
+		boombox.getBoombox().remove(BoomboxComponents.BOOMBOX_ENTITY);
+		return copy;
 	}
 
 	@Override
 	protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
 		BlockEntity blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity instanceof BoomboxBlockEntity boombox) {
-			return List.of(droppedStack(boombox));
+			return List.of(dropStack(boombox));
 		}
 		return super.getDrops(state, builder);
 	}
@@ -175,7 +179,8 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 	protected ItemStack getCloneItemStack(LevelReader world, BlockPos pos, BlockState state, boolean includeData) {
 		if (world.getBlockEntity(pos) instanceof BoomboxBlockEntity boombox && !boombox.getBoombox().isEmpty()) {
 			// A plain pick gives an empty boombox; Ctrl + pick keeps the contents.
-			var stack = droppedStack(boombox);
+			var stack = boombox.getBoombox().copy();
+			stack.remove(BoomboxComponents.BOOMBOX_ENTITY);
 			if (!includeData) {
 				stack.remove(BoomboxComponents.BOOMBOX);
 				stack.remove(BoomboxComponents.BOOMBOX_STORAGE);
@@ -220,12 +225,19 @@ public class BoomboxBlock extends BaseEntityBlock implements PolymerTexturedBloc
 
 	@Override
 	protected void neighborChanged(
-			BlockState state, Level world, BlockPos pos, Block sourceBlock,
-			Orientation orientation, boolean notify
+		BlockState state, Level level, @NonNull BlockPos pos, @NonNull Block sourceBlock,
+		Orientation orientation, boolean notify
 	) {
-		var blockEntity = world.getBlockEntity(pos);
-		if (blockEntity instanceof BoomboxBlockEntity portable) {
-			BoomboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getBoombox());
+		boolean shouldTrigger = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above());
+		boolean isTriggered = state.getValue(TRIGGERED);
+		if (shouldTrigger && !isTriggered) {
+			var blockEntity = level.getBlockEntity(pos);
+			if (blockEntity instanceof BoomboxBlockEntity portable) {
+				BoomboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getBoombox());
+			}
+			level.setBlock(pos, state.setValue(TRIGGERED, true), 2);
+		} else if (!shouldTrigger && isTriggered) {
+			level.setBlock(pos, state.setValue(TRIGGERED, false), 2);
 		}
 	}
 
