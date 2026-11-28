@@ -20,9 +20,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import org.jspecify.annotations.NonNull;
 import se.metacraft.lib.util.EntityRef;
 import se.metacraft.portable_jukebox.block.BoomboxBlocks;
 import se.metacraft.portable_jukebox.item.components.Autoplay;
@@ -76,7 +78,21 @@ public class BoomboxItem extends BlockItem implements PolymerItem {
 	}
 
 	@Override
-	public InteractionResult use(Level world, Player user, InteractionHand hand) {
+	public @NonNull InteractionResult useOn(final @NonNull UseOnContext context) {
+		if (context.getPlayer() == null || context.isSecondaryUseActive()) {
+			var use = super.useOn(context);
+			if (use instanceof InteractionResult.Success s) {
+				if (s.swingSource() == InteractionResult.SwingSource.PREDICTED) {
+					return new InteractionResult.Success(InteractionResult.SwingSource.SERVER_ONLY, s.itemContext());
+				}
+				return s;
+			}
+		}
+		return InteractionResult.PASS;
+	}
+
+	@Override
+	public @NonNull InteractionResult use(Level world, Player user, @NonNull InteractionHand hand) {
 		var stack = user.getItemInHand(hand);
 		if (!world.isClientSide() && !user.isSecondaryUseActive()) {
 			var gui = BoomboxGui.create((ServerPlayer) user, stack, EntityRef.fromEntity(user));
